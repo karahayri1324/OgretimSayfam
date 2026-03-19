@@ -1,0 +1,7 @@
+Demo Hesaplar (Şifre: 123456)
+Rol	E-posta
+Süper Admin	admin@ogretimsayfam.com
+Okul Müdürü	mudur@ataturk-anadolu.com
+Öğretmen	ogretmen1@ataturk-anadolu.com
+Öğrenci	ogrenci1@ataturk-anadolu.com
+Veli	veli1@ataturk-anadolu.com

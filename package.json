@@ -1,0 +1,24 @@
+{
+  "name": "ogretimsayfam",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ÖğretimSayfam - Dijital Eğitim Yönetim Sistemi",
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "dev:frontend": "npm run dev --workspace=packages/frontend",
+    "dev:fet": "npm run dev --workspace=services/fet-service",
+    "build": "npm run build --workspaces",
+    "db:migrate": "npm run db:migrate --workspace=packages/backend",
+    "db:seed": "npm run db:seed --workspace=packages/backend",
+    "db:studio": "npm run db:studio --workspace=packages/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,607 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== OKUL ====================
+
+model School {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique // subdomain için: "okul1" -> okul1.ogretimsayfam.com
+  address     String?
+  phone       String?
+  email       String?
+  logo        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  users            User[]
+  academicYears    AcademicYear[]
+  classes          Class[]
+  subjects         Subject[]
+  classrooms       Classroom[]
+  timeSlots        TimeSlot[]
+  announcements    Announcement[]
+  events           Event[]
+  gradeCategories  GradeCategory[]
+
+  @@map("schools")
+}
+
+// ==================== KULLANICILAR ====================
+
+enum UserRole {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String
+  firstName    String
+  lastName     String
+  phone        String?
+  avatar       String?
+  role         UserRole
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  schoolId     String?
+  school       School?   @relation(fields: [schoolId], references: [id])
+
+  // Rol bazlı profiller
+  teacherProfile  TeacherProfile?
+  studentProfile  StudentProfile?
+  parentProfile   ParentProfile?
+
+  // Refresh token
+  refreshTokens   RefreshToken[]
+
+  // Duyuru oluşturan
+  announcements   Announcement[]
+
+  // Etkinlik oluşturan
+  createdEvents   Event[]
+
+  @@index([schoolId])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ==================== PROFİLLER ====================
+
+model TeacherProfile {
+  id          String  @id @default(uuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch      String? // Branş (Matematik, Fen Bilgisi vs.)
+  title       String? // Unvan
+
+  // İlişkiler
+  teacherAssignments  TeacherAssignment[]
+  teacherAttendances  TeacherAttendance[]
+  substitutionsFrom   Substitution[]       @relation("SubstitutedTeacher")
+  substitutionsTo     Substitution[]       @relation("SubstituteTeacher")
+  classDiaryEntries   ClassDiaryEntry[]
+  grades              Grade[]
+
+  @@map("teacher_profiles")
+}
+
+model StudentProfile {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentNumber String? // Okul numarası
+  classId       String?
+  class         Class?  @relation(fields: [classId], references: [id])
+
+  // İlişkiler
+  parentStudents       ParentStudent[]
+  attendances          Attendance[]
+  grades               Grade[]
+  assignmentSubmissions AssignmentSubmission[]
+
+  @@index([classId])
+  @@map("student_profiles")
+}
+
+model ParentProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // İlişkiler
+  parentStudents ParentStudent[]
+
+  @@map("parent_profiles")
+}
+
+model ParentStudent {
+  id        String @id @default(uuid())
+  parentId  String
+  studentId String
+  parent    ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  relation  String?        // "Anne", "Baba", "Vasi" vs.
+
+  @@unique([parentId, studentId])
+  @@map("parent_students")
+}
+
+// ==================== AKADEMİK YAPI ====================
+
+model AcademicYear {
+  id        String   @id @default(uuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name      String   // "2025-2026"
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  terms     Term[]
+
+  @@index([schoolId])
+  @@map("academic_years")
+}
+
+model Term {
+  id             String       @id @default(uuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  name           String       // "1. Dönem", "2. Dönem"
+  startDate      DateTime
+  endDate        DateTime
+  isCurrent      Boolean      @default(false)
+
+  // İlişkiler
+  grades      Grade[]
+  assignments Assignment[]
+
+  @@index([academicYearId])
+  @@map("terms")
+}
+
+model Class {
+  id        String  @id @default(uuid())
+  schoolId  String
+  school    School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name      String  // "9-A", "10-B"
+  grade     Int     // Sınıf seviyesi: 9, 10, 11, 12
+  section   String  // Şube: "A", "B", "C"
+  capacity  Int     @default(30)
+  isActive  Boolean @default(true)
+
+  // İlişkiler
+  students           StudentProfile[]
+  teacherAssignments TeacherAssignment[]
+  timetableEntries   TimetableEntry[]
+  attendances        Attendance[]
+  announcements      AnnouncementClass[]
+  classDiaryEntries  ClassDiaryEntry[]
+  assignments        Assignment[]
+
+  @@unique([schoolId, grade, section])
+  @@index([schoolId])
+  @@map("classes")
+}
+
+model Subject {
+  id        String  @id @default(uuid())
+  schoolId  String
+  school    School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name      String  // "Matematik", "Fizik"
+  code      String? // "MAT", "FIZ"
+  color     String? // UI'da renk kodu
+  isActive  Boolean @default(true)
+
+  // İlişkiler
+  teacherAssignments TeacherAssignment[]
+  timetableEntries   TimetableEntry[]
+  grades             Grade[]
+  classDiaryEntries  ClassDiaryEntry[]
+  assignments        Assignment[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("subjects")
+}
+
+model Classroom {
+  id        String  @id @default(uuid())
+  schoolId  String
+  school    School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name      String  // "Derslik 101", "Lab-1"
+  capacity  Int     @default(30)
+  type      String  @default("NORMAL") // NORMAL, LAB, GYM, CONFERENCE
+  isActive  Boolean @default(true)
+
+  // İlişkiler
+  timetableEntries TimetableEntry[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("classrooms")
+}
+
+// ==================== ÖĞRETMEN ATAMALARI ====================
+
+model TeacherAssignment {
+  id               String         @id @default(uuid())
+  teacherProfileId String
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  classId          String
+  class            Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId        String
+  subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  hoursPerWeek     Int            @default(4) // Haftalık ders saati
+
+  @@unique([teacherProfileId, classId, subjectId])
+  @@map("teacher_assignments")
+}
+
+// ==================== DERS PROGRAMI ====================
+
+model TimeSlot {
+  id         String @id @default(uuid())
+  schoolId   String
+  school     School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  slotNumber Int    // 1, 2, 3...
+  startTime  String // "08:30"
+  endTime    String // "09:10"
+
+  timetableEntries TimetableEntry[]
+
+  @@unique([schoolId, slotNumber])
+  @@index([schoolId])
+  @@map("time_slots")
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model TimetableEntry {
+  id          String    @id @default(uuid())
+  classId     String
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  timeSlotId  String
+  timeSlot    TimeSlot  @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  classroomId String?
+  classroom   Classroom? @relation(fields: [classroomId], references: [id])
+  dayOfWeek   DayOfWeek
+  teacherId   String?   // Öğretmen ID (TeacherProfile)
+
+  // İlişkiler
+  attendances   Attendance[]
+  substitutions Substitution[]
+  classDiary    ClassDiaryEntry[]
+
+  @@unique([classId, dayOfWeek, timeSlotId])
+  @@unique([teacherId, dayOfWeek, timeSlotId])
+  @@index([classId])
+  @@map("timetable_entries")
+}
+
+// ==================== YOKLAMA ====================
+
+enum AttendanceStatus {
+  PRESENT  // Geldi
+  ABSENT   // Gelmedi
+  LATE     // Geç kaldı
+  EXCUSED  // İzinli
+}
+
+model Attendance {
+  id               String           @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  timetableEntryId String
+  timetableEntry   TimetableEntry   @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  classId          String
+  class            Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  date             DateTime         @db.Date
+  status           AttendanceStatus
+  note             String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([studentProfileId, timetableEntryId, date])
+  @@index([classId, date])
+  @@index([studentProfileId])
+  @@map("attendances")
+}
+
+model TeacherAttendance {
+  id               String         @id @default(uuid())
+  teacherProfileId String
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  date             DateTime       @db.Date
+  isPresent        Boolean        @default(true)
+  reason           String?
+  createdAt        DateTime       @default(now())
+
+  @@unique([teacherProfileId, date])
+  @@index([teacherProfileId])
+  @@map("teacher_attendances")
+}
+
+// ==================== VEKİL ÖĞRETMEN ====================
+
+model Substitution {
+  id                     String          @id @default(uuid())
+  timetableEntryId       String
+  timetableEntry         TimetableEntry  @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  originalTeacherId      String
+  originalTeacher        TeacherProfile  @relation("SubstitutedTeacher", fields: [originalTeacherId], references: [id])
+  substituteTeacherId    String?
+  substituteTeacher      TeacherProfile? @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id])
+  date                   DateTime        @db.Date
+  isEmptyLesson          Boolean         @default(false) // Boş ders mi?
+  reason                 String?
+  createdAt              DateTime        @default(now())
+
+  @@unique([timetableEntryId, date])
+  @@index([date])
+  @@map("substitutions")
+}
+
+// ==================== NOTLAR ====================
+
+model GradeCategory {
+  id       String @id @default(uuid())
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name     String // "Yazılı", "Sözlü", "Ödev", "Performans"
+  code     String // "EXAM", "ORAL", "HOMEWORK", "PERFORMANCE"
+  weight   Float  @default(1.0) // Ağırlık katsayısı
+
+  grades   Grade[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("grade_categories")
+}
+
+model Grade {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  subjectId        String
+  subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherProfileId String
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id])
+  termId           String
+  term             Term           @relation(fields: [termId], references: [id], onDelete: Cascade)
+  categoryId       String
+  category         GradeCategory  @relation(fields: [categoryId], references: [id])
+  score            Float          // Not değeri (0-100)
+  description      String?        // Açıklama
+  date             DateTime       @db.Date
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([studentProfileId, subjectId, termId])
+  @@map("grades")
+}
+
+// ==================== ÖDEVLER ====================
+
+model Assignment {
+  id          String   @id @default(uuid())
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  termId      String
+  term        Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  attachments String[] // Dosya yolları
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions AssignmentSubmission[]
+
+  @@index([classId, subjectId])
+  @@map("assignments")
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+  LATE
+}
+
+model AssignmentSubmission {
+  id               String           @id @default(uuid())
+  assignmentId     String
+  assignment       Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentProfileId String
+  studentProfile   StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  content          String?
+  attachments      String[]
+  status           SubmissionStatus @default(PENDING)
+  score            Float?
+  feedback         String?
+  submittedAt      DateTime?
+  gradedAt         DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([assignmentId, studentProfileId])
+  @@map("assignment_submissions")
+}
+
+// ==================== DUYURULAR ====================
+
+enum AnnouncementCategory {
+  GENERAL
+  URGENT
+  EVENT
+  EXAM
+}
+
+model Announcement {
+  id        String               @id @default(uuid())
+  schoolId  String?
+  school    School?              @relation(fields: [schoolId], references: [id])
+  authorId  String
+  author    User                 @relation(fields: [authorId], references: [id])
+  title     String
+  content   String
+  category  AnnouncementCategory @default(GENERAL)
+  isPinned  Boolean              @default(false)
+  isActive  Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  targetClasses AnnouncementClass[]
+  reads         AnnouncementRead[]
+
+  @@index([schoolId])
+  @@map("announcements")
+}
+
+model AnnouncementClass {
+  id             String       @id @default(uuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  classId        String
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, classId])
+  @@map("announcement_classes")
+}
+
+model AnnouncementRead {
+  id             String       @id @default(uuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String
+  readAt         DateTime     @default(now())
+
+  @@unique([announcementId, userId])
+  @@map("announcement_reads")
+}
+
+// ==================== SINIF DEFTERİ ====================
+
+model ClassDiaryEntry {
+  id               String          @id @default(uuid())
+  timetableEntryId String
+  timetableEntry   TimetableEntry  @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  classId          String
+  class            Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId        String
+  subject          Subject         @relation(fields: [subjectId], references: [id])
+  teacherProfileId String
+  teacherProfile   TeacherProfile  @relation(fields: [teacherProfileId], references: [id])
+  date             DateTime        @db.Date
+  topic            String          // İşlenen konu
+  description      String?         // Açıklama
+  isApproved       Boolean         @default(false) // Yönetici onayı
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([timetableEntryId, date])
+  @@index([classId, date])
+  @@map("class_diary_entries")
+}
+
+// ==================== ETKİNLİKLER ====================
+
+enum EventType {
+  TRIP
+  CEREMONY
+  MEETING
+  SPORTS
+  CULTURAL
+  OTHER
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  title       String
+  description String?
+  type        EventType @default(OTHER)
+  startDate   DateTime
+  endDate     DateTime?
+  location    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  participants EventParticipant[]
+
+  @@index([schoolId])
+  @@map("events")
+}
+
+model EventParticipant {
+  id      String @id @default(uuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  status  String @default("INVITED") // INVITED, ACCEPTED, DECLINED
+
+  @@unique([eventId, userId])
+  @@map("event_participants")
+}
+
+// ==================== BİLDİRİMLER ====================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // "ATTENDANCE", "GRADE", "ANNOUNCEMENT", "ASSIGNMENT"
+  isRead    Boolean  @default(false)
+  data      Json?    // Ek veri
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

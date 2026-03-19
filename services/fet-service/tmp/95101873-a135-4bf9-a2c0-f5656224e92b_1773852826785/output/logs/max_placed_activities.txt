@@ -1,0 +1,2 @@
+﻿This is the list of max placed activities, chronologically. If FET could reach maximum n-th activity, look at the n+1-st activity in the initial order of the activities
+
