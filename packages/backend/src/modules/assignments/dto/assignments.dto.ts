@@ -1,12 +1,12 @@
-import { IsString, IsOptional, IsDateString, IsArray, IsEnum, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsArray, IsEnum, IsNumber, IsUUID, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SubmissionStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class CreateAssignmentDto {
-  @ApiProperty() @IsString() classId: string;
-  @ApiProperty() @IsString() subjectId: string;
-  @ApiProperty() @IsString() termId: string;
+  @ApiProperty() @IsString() @IsUUID() classId: string;
+  @ApiProperty() @IsString() @IsUUID() subjectId: string;
+  @ApiProperty() @IsString() @IsUUID() termId: string;
   @ApiProperty() @IsString() title: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() description?: string;
   @ApiProperty() @IsDateString() dueDate: string;

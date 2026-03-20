@@ -31,3 +31,9 @@ coverage/
 
 # Docker volumes
 docker-data/
+
+# Sensitive files
+hesaplar.txt
+*.env.local
+.env.production
+.env.staging

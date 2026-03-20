@@ -226,4 +226,135 @@ export class DashboardService {
       dayOfWeek,
     };
   }
+
+  async getParentDashboard(userId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const dayIndex = today.getDay();
+    const dayOfWeek = dayNames[dayIndex];
+    const isWeekend = dayIndex === 0 || dayIndex === 6;
+
+    // Find parent profile and linked children
+    const parentProfile = await this.prisma.parentProfile.findUnique({
+      where: { userId },
+      include: {
+        parentStudents: {
+          include: {
+            student: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+                class: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!parentProfile || parentProfile.parentStudents.length === 0) {
+      return {
+        children: [],
+        recentAnnouncements: [],
+        isWeekend,
+        dayOfWeek,
+      };
+    }
+
+    // Get schoolId from the first child's user
+    const firstStudentUserId = parentProfile.parentStudents[0].student.userId;
+    const firstStudentUser = await this.prisma.user.findUnique({
+      where: { id: firstStudentUserId },
+      select: { schoolId: true },
+    });
+    const schoolId = firstStudentUser?.schoolId;
+
+    // Fetch data for each child
+    const children = await Promise.all(
+      parentProfile.parentStudents.map(async (ps) => {
+        const student = ps.student;
+        const classId = student.classId;
+        const studentProfileId = student.id;
+
+        const [todayClasses, timeSlots, recentGrades, absenceCount, pendingAssignments] = await Promise.all([
+          isWeekend || !classId
+            ? Promise.resolve([])
+            : this.prisma.timetableEntry.findMany({
+                where: { classId, dayOfWeek: dayOfWeek as any },
+                include: {
+                  subject: { select: { name: true, color: true } },
+                  timeSlot: true,
+                  classroom: { select: { name: true } },
+                },
+                orderBy: { timeSlot: { slotNumber: 'asc' } },
+              }),
+          schoolId
+            ? this.prisma.timeSlot.findMany({
+                where: { schoolId },
+                orderBy: { slotNumber: 'asc' },
+              })
+            : Promise.resolve([]),
+          this.prisma.grade.findMany({
+            where: { studentProfileId },
+            include: {
+              subject: { select: { name: true } },
+              category: { select: { name: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          }),
+          this.prisma.attendance.count({
+            where: { studentProfileId, status: 'ABSENT' },
+          }).catch(() => 0),
+          classId
+            ? this.prisma.assignment.findMany({
+                where: {
+                  classId,
+                  dueDate: { gte: today },
+                  submissions: { none: { studentProfileId } },
+                },
+                include: { subject: { select: { name: true } } },
+                orderBy: { dueDate: 'asc' },
+                take: 5,
+              })
+            : Promise.resolve([]),
+        ]);
+
+        const gradeAverage =
+          recentGrades.length > 0
+            ? recentGrades.reduce((sum: number, g: any) => sum + g.score, 0) / recentGrades.length
+            : 0;
+
+        return {
+          id: studentProfileId,
+          firstName: student.user.firstName,
+          lastName: student.user.lastName,
+          className: student.class?.name || '-',
+          todayClasses,
+          timeSlots,
+          recentGrades,
+          absenceCount,
+          pendingAssignments,
+          gradeAverage: Math.round(gradeAverage * 10) / 10,
+        };
+      }),
+    );
+
+    // Fetch announcements for the school
+    const recentAnnouncements = schoolId
+      ? await this.prisma.announcement.findMany({
+          where: { schoolId, isActive: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: { id: true, title: true, category: true, createdAt: true },
+        })
+      : [];
+
+    return {
+      children,
+      recentAnnouncements,
+      isWeekend,
+      dayOfWeek,
+    };
+  }
 }

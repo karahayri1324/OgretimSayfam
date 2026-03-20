@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, School, BookOpen, Calendar, ClipboardCheck,
   GraduationCap, FileText, Bell, BookMarked, UserCheck, CalendarDays,
-  Settings, LogOut, ChevronLeft, Menu, Building2
+  Settings, LogOut, ChevronLeft, Menu, Building2, DoorOpen, CalendarRange
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -17,6 +17,8 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Okullar', href: '/dashboard/schools', icon: Building2 },
     { label: 'Kullanıcılar', href: '/dashboard/users', icon: Users },
     { label: 'Sınıflar', href: '/dashboard/classes', icon: School },
+    { label: 'Derslikler', href: '/dashboard/classrooms', icon: DoorOpen },
+    { label: 'Akademik Yıl', href: '/dashboard/academic-years', icon: CalendarRange },
     { label: 'Dersler', href: '/dashboard/subjects', icon: BookOpen },
     { label: 'Ders Programı', href: '/dashboard/timetable', icon: Calendar },
     { label: 'Yoklama', href: '/dashboard/attendance', icon: ClipboardCheck },
@@ -25,11 +27,14 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
     { label: 'Sınıf Defteri', href: '/dashboard/class-diary', icon: BookMarked },
     { label: 'Vekil Öğretmen', href: '/dashboard/substitutions', icon: UserCheck },
+    { label: 'Profil', href: '/dashboard/profile', icon: Settings },
   ],
   SCHOOL_ADMIN: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Kullanıcılar', href: '/dashboard/users', icon: Users },
     { label: 'Sınıflar', href: '/dashboard/classes', icon: School },
+    { label: 'Derslikler', href: '/dashboard/classrooms', icon: DoorOpen },
+    { label: 'Akademik Yıl', href: '/dashboard/academic-years', icon: CalendarRange },
     { label: 'Dersler', href: '/dashboard/subjects', icon: BookOpen },
     { label: 'Ders Programı', href: '/dashboard/timetable', icon: Calendar },
     { label: 'Yoklama', href: '/dashboard/attendance', icon: ClipboardCheck },
@@ -38,6 +43,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
     { label: 'Sınıf Defteri', href: '/dashboard/class-diary', icon: BookMarked },
     { label: 'Vekil Öğretmen', href: '/dashboard/substitutions', icon: UserCheck },
+    { label: 'Profil', href: '/dashboard/profile', icon: Settings },
   ],
   TEACHER: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -51,6 +57,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
     { label: 'Sınıf Defteri', href: '/dashboard/class-diary', icon: BookMarked },
     { label: 'Vekil Öğretmen', href: '/dashboard/substitutions', icon: UserCheck },
+    { label: 'Profil', href: '/dashboard/profile', icon: Settings },
   ],
   STUDENT: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -59,6 +66,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Ödevlerim', href: '/dashboard/assignments', icon: FileText },
     { label: 'Duyurular', href: '/dashboard/announcements', icon: Bell },
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
+    { label: 'Profil', href: '/dashboard/profile', icon: Settings },
   ],
   PARENT: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -67,6 +75,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Ödevler', href: '/dashboard/assignments', icon: FileText },
     { label: 'Duyurular', href: '/dashboard/announcements', icon: Bell },
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
+    { label: 'Profil', href: '/dashboard/profile', icon: Settings },
   ],
 };
 

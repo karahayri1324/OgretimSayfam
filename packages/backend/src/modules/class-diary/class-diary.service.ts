@@ -48,6 +48,12 @@ export class ClassDiaryService {
     });
   }
 
+  async delete(id: string) {
+    const entry = await this.prisma.classDiaryEntry.findUnique({ where: { id } });
+    if (!entry) throw new NotFoundException('Kayıt bulunamadı');
+    return this.prisma.classDiaryEntry.delete({ where: { id } });
+  }
+
   async approve(id: string) {
     return this.prisma.classDiaryEntry.update({
       where: { id },

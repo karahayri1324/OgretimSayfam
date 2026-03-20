@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [schoolSlug, setSchoolSlug] = useState('ataturk-anadolu');
+  const [schoolSlug, setSchoolSlug] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
   const router = useRouter();
@@ -101,25 +101,34 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo info */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-xs font-medium text-blue-800 mb-2">Demo Hesapları (tıklayın):</p>
-            <div className="text-xs text-blue-700 space-y-1.5">
-              <button onClick={() => fillDemo('mudur@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
-                Okul Admin: mudur@ataturk-anadolu.com
-              </button>
-              <button onClick={() => fillDemo('ogretmen1@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
-                Öğretmen: ogretmen1@ataturk-anadolu.com
-              </button>
-              <button onClick={() => fillDemo('ogrenci1@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
-                Öğrenci: ogrenci1@ataturk-anadolu.com
-              </button>
-              <button onClick={() => fillDemo('veli1@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
-                Veli: veli1@ataturk-anadolu.com
-              </button>
-              <p className="text-[10px] text-blue-500 mt-1">Şifre: 123456</p>
-            </div>
+          {/* Forgot password link */}
+          <div className="mt-4 text-center">
+            <a href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
+              Şifremi Unuttum
+            </a>
           </div>
+
+          {/* Demo info - only in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-xs font-medium text-blue-800 mb-2">Demo Hesapları (tıklayın):</p>
+              <div className="text-xs text-blue-700 space-y-1.5">
+                <button onClick={() => fillDemo('mudur@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
+                  Okul Admin: mudur@ataturk-anadolu.com
+                </button>
+                <button onClick={() => fillDemo('ogretmen1@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
+                  Öğretmen: ogretmen1@ataturk-anadolu.com
+                </button>
+                <button onClick={() => fillDemo('ogrenci1@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
+                  Öğrenci: ogrenci1@ataturk-anadolu.com
+                </button>
+                <button onClick={() => fillDemo('veli1@ataturk-anadolu.com')} className="block w-full text-left hover:text-blue-900 hover:underline">
+                  Veli: veli1@ataturk-anadolu.com
+                </button>
+                <p className="text-[10px] text-blue-500 mt-1">Şifre: 123456</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

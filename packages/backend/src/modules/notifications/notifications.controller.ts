@@ -23,15 +23,15 @@ export class NotificationsController {
     return { success: true, data: { count: await this.notificationsService.getUnreadCount(userId) } };
   }
 
-  @Put(':id/read')
-  @ApiOperation({ summary: 'Bildirimi okundu yap' })
-  async markAsRead(@Param('id') id: string) {
-    return { success: true, data: await this.notificationsService.markAsRead(id) };
-  }
-
   @Put('read-all')
   @ApiOperation({ summary: 'Tüm bildirimleri okundu yap' })
   async markAllAsRead(@CurrentUser('id') userId: string) {
     return { success: true, data: await this.notificationsService.markAllAsRead(userId) };
+  }
+
+  @Put(':id/read')
+  @ApiOperation({ summary: 'Bildirimi okundu yap' })
+  async markAsRead(@Param('id') id: string) {
+    return { success: true, data: await this.notificationsService.markAsRead(id) };
   }
 }

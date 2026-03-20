@@ -2,12 +2,17 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto, RegisterDto, ChangePasswordDto } from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
+  // In-memory store for password reset tokens
+  // TODO: Production ortamında Redis veya DB tablosu kullanılmalı
+  private resetTokens = new Map<string, { userId: string; expiresAt: Date }>();
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
@@ -146,6 +151,48 @@ export class AuthService {
     await this.prisma.refreshToken.deleteMany({ where: { userId } });
 
     return { message: 'Şifre başarıyla değiştirildi' };
+  }
+
+  async requestPasswordReset(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Don't reveal if email exists
+      return { message: 'Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi' };
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    this.resetTokens.set(token, {
+      userId: user.id,
+      expiresAt: new Date(Date.now() + 3600000), // 1 hour
+    });
+
+    // TODO: Production ortamında e-posta ile sıfırlama bağlantısı gönderilmeli
+    // For now, log the token (admin can look it up)
+    console.log(`Password reset token for ${email}: ${token}`);
+
+    return { message: 'Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const stored = this.resetTokens.get(token);
+    if (!stored || stored.expiresAt < new Date()) {
+      if (stored) {
+        this.resetTokens.delete(token);
+      }
+      throw new BadRequestException('Geçersiz veya süresi dolmuş token');
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: stored.userId },
+      data: { password: hashed },
+    });
+
+    // Invalidate the used token and all refresh tokens
+    this.resetTokens.delete(token);
+    await this.prisma.refreshToken.deleteMany({ where: { userId: stored.userId } });
+
+    return { message: 'Şifre başarıyla sıfırlandı' };
   }
 
   async logout(userId: string) {

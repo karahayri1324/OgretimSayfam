@@ -18,6 +18,8 @@ import {
   Calendar,
   BookOpen,
   Eye,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { formatRelativeDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -111,11 +113,17 @@ function AnnouncementCard({
   isExpanded,
   onToggle,
   onMarkRead,
+  onEdit,
+  onDelete,
+  canManage,
 }: {
   announcement: Announcement;
   isExpanded: boolean;
   onToggle: () => void;
   onMarkRead: (id: string) => void;
+  onEdit?: (announcement: Announcement) => void;
+  onDelete?: (announcement: Announcement) => void;
+  canManage: boolean;
 }) {
   const a = announcement;
   const isUnread = a.isRead === false;
@@ -185,9 +193,35 @@ function AnnouncementCard({
             </div>
           </div>
 
-          {/* Expand icon */}
-          <div className="flex-shrink-0 mt-1 text-gray-400">
-            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          {/* Action buttons + Expand icon */}
+          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+            {canManage && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(a);
+                  }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all"
+                  title="Duzenle"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.(a);
+                  }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                  title="Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            <div className="text-gray-400 ml-1">
+              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </div>
           </div>
         </div>
 
@@ -406,6 +440,207 @@ function CreateAnnouncementModal({
 }
 
 // ---------------------------------------------------------------------------
+// Edit Modal Component
+// ---------------------------------------------------------------------------
+
+function EditAnnouncementModal({
+  announcement,
+  onClose,
+  onUpdated,
+}: {
+  announcement: Announcement;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: announcement.title,
+    content: announcement.content,
+    isPinned: announcement.isPinned,
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.put(`/announcements/${announcement.id}`, form);
+      toast.success('Duyuru basariyla guncellendi');
+      onUpdated();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message?.[0] || 'Duyuru guncellenemedi');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal header */}
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
+              <Pencil className="w-5 h-5 text-primary-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Duyuru Duzenle</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Baslik</label>
+            <input
+              className="input"
+              placeholder="Duyuru basligini girin..."
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Icerik</label>
+            <textarea
+              className="input min-h-[140px] resize-y"
+              placeholder="Duyuru icerigini yazin..."
+              value={form.content}
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Pin toggle */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Pin className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Duyuruyu Sabitle</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, isPinned: !form.isPinned })}
+              className={`
+                relative w-11 h-6 rounded-full transition-colors duration-200
+                ${form.isPinned ? 'bg-primary-500' : 'bg-gray-300'}
+              `}
+            >
+              <span
+                className={`
+                  absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200
+                  ${form.isPinned ? 'translate-x-5' : 'translate-x-0'}
+                `}
+              />
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Iptal
+            </button>
+            <button type="submit" disabled={submitting} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+              Guncelle
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Delete Confirmation Modal Component
+// ---------------------------------------------------------------------------
+
+function DeleteAnnouncementModal({
+  announcement,
+  onClose,
+  onDeleted,
+}: {
+  announcement: Announcement;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/announcements/${announcement.id}`);
+      toast.success('Duyuru basariyla silindi');
+      onDeleted();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message?.[0] || 'Duyuru silinemedi');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal header */}
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+              <Trash2 className="w-5 h-5 text-red-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Duyuru Sil</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="text-sm text-gray-600">
+            <p className="mb-2">
+              Bu duyuruyu silmek istediginizden emin misiniz?
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="font-semibold text-gray-900">{announcement.title}</p>
+              <p className="text-gray-500 mt-1 line-clamp-2">{announcement.content}</p>
+            </div>
+            <p className="mt-3 text-red-600 text-xs font-medium">
+              Bu islem geri alinamaz.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Iptal
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-all"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Sil
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Page Component
 // ---------------------------------------------------------------------------
 
@@ -414,12 +649,15 @@ export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const canCreate = ['SCHOOL_ADMIN', 'TEACHER'].includes(user?.role || '');
+  const canManage = ['SCHOOL_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
 
   const fetchAnnouncements = useCallback(async () => {
     try {
@@ -628,6 +866,9 @@ export default function AnnouncementsPage() {
                     isExpanded={expandedId === a.id}
                     onToggle={() => setExpandedId(expandedId === a.id ? null : a.id)}
                     onMarkRead={markAsRead}
+                    onEdit={(ann) => setEditingAnnouncement(ann)}
+                    onDelete={(ann) => setDeletingAnnouncement(ann)}
+                    canManage={canManage}
                   />
                 ))}
               </div>
@@ -651,6 +892,9 @@ export default function AnnouncementsPage() {
                     isExpanded={expandedId === a.id}
                     onToggle={() => setExpandedId(expandedId === a.id ? null : a.id)}
                     onMarkRead={markAsRead}
+                    onEdit={(ann) => setEditingAnnouncement(ann)}
+                    onDelete={(ann) => setDeletingAnnouncement(ann)}
+                    canManage={canManage}
                   />
                 ))}
               </div>
@@ -664,6 +908,24 @@ export default function AnnouncementsPage() {
         <CreateAnnouncementModal
           onClose={() => setShowModal(false)}
           onCreated={fetchAnnouncements}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editingAnnouncement && (
+        <EditAnnouncementModal
+          announcement={editingAnnouncement}
+          onClose={() => setEditingAnnouncement(null)}
+          onUpdated={fetchAnnouncements}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {deletingAnnouncement && (
+        <DeleteAnnouncementModal
+          announcement={deletingAnnouncement}
+          onClose={() => setDeletingAnnouncement(null)}
+          onDeleted={fetchAnnouncements}
         />
       )}
     </div>

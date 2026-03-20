@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TakeAttendanceDto, TeacherAttendanceDto } from './dto/attendance.dto';
+import { TakeAttendanceDto, UpdateAttendanceDto, TeacherAttendanceDto } from './dto/attendance.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -30,6 +30,21 @@ export class AttendanceService {
       results.push(record);
     }
     return results;
+  }
+
+  async updateAttendance(id: string, dto: UpdateAttendanceDto) {
+    const existing = await this.prisma.attendance.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Yoklama kaydı bulunamadı');
+    return this.prisma.attendance.update({
+      where: { id },
+      data: { ...dto },
+    });
+  }
+
+  async deleteAttendance(id: string) {
+    const existing = await this.prisma.attendance.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Yoklama kaydı bulunamadı');
+    return this.prisma.attendance.delete({ where: { id } });
   }
 
   async getByClassAndDate(classId: string, date: string) {

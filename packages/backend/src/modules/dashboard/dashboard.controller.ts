@@ -43,4 +43,13 @@ export class DashboardController {
       ),
     };
   }
+
+  @Get('parent')
+  @UseGuards(RolesGuard)
+  @Roles('PARENT')
+  @ApiOperation({ summary: 'Veli dashboard' })
+  async getParentDashboard(@CurrentUser('id') userId: string) {
+    const data = await this.dashboardService.getParentDashboard(userId);
+    return { success: true, data };
+  }
 }

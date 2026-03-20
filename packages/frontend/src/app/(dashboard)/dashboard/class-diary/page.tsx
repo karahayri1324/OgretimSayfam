@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import toast from 'react-hot-toast';
-import { BookOpen, ChevronLeft, ChevronRight, CheckCircle, Loader2, Plus, FileText } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, CheckCircle, Loader2, Plus, FileText, Pencil, Trash2 } from 'lucide-react';
 
 export default function ClassDiaryPage() {
   const { user } = useAuthStore();
@@ -14,6 +14,8 @@ export default function ClassDiaryPage() {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN';
   const isTeacher = user?.role === 'TEACHER';
@@ -58,6 +60,32 @@ export default function ClassDiaryPage() {
       loadEntries();
     } catch {
       toast.error('Onaylama başarısız');
+    }
+  };
+
+  const canEditEntry = (entry: any) => {
+    if (isAdmin) return true;
+    if (isTeacher && entry.teacherProfile?.user?.id === user?.id) return true;
+    return false;
+  };
+
+  const canDeleteEntry = (entry: any) => {
+    if (entry.isApproved) return false;
+    return canEditEntry(entry);
+  };
+
+  const openEditModal = (entry: any) => {
+    setEditingEntry(entry);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/class-diary/${id}`);
+      toast.success('Kayıt silindi');
+      setDeleteConfirm(null);
+      await loadEntries();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Silme başarısız');
     }
   };
 
@@ -129,11 +157,31 @@ export default function ClassDiaryPage() {
                     </div>
                   )}
                 </div>
-                {isAdmin && !entry.isApproved && (
-                  <button onClick={() => handleApprove(entry.id)} className="ml-4 p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Onayla">
-                    <CheckCircle className="w-5 h-5" />
-                  </button>
-                )}
+                <div className="flex items-center gap-1 ml-4">
+                  {canEditEntry(entry) && (
+                    <button
+                      onClick={() => openEditModal(entry)}
+                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                      title="Düzenle"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                  {canDeleteEntry(entry) && (
+                    <button
+                      onClick={() => setDeleteConfirm(entry.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Sil"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                  {isAdmin && !entry.isApproved && (
+                    <button onClick={() => handleApprove(entry.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Onayla">
+                      <CheckCircle className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -144,6 +192,71 @@ export default function ClassDiaryPage() {
       {showAddModal && (
         <AddDiaryModal classId={selectedClassId} date={selectedDate} onClose={() => setShowAddModal(false)} onSaved={() => { setShowAddModal(false); loadEntries(); }} />
       )}
+
+      {/* Edit Modal */}
+      {editingEntry && (
+        <EditDiaryModal entry={editingEntry} onClose={() => setEditingEntry(null)} onSaved={() => { setEditingEntry(null); loadEntries(); }} />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Kaydı Sil</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Bu sınıf defteri kaydını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1">İptal</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors">
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditDiaryModal({ entry, onClose, onSaved }: {
+  entry: any; onClose: () => void; onSaved: () => void;
+}) {
+  const [topic, setTopic] = useState(entry.topic || '');
+  const [description, setDescription] = useState(entry.description || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!topic) { toast.error('Konu gerekli'); return; }
+    setSaving(true);
+    try {
+      await api.put(`/class-diary/${entry.id}`, { topic, description: description || undefined });
+      toast.success('Kayıt güncellendi');
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Güncelleme başarısız');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        <h3 className="text-lg font-semibold mb-4">Sınıf Defteri Kaydını Düzenle</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">İşlenen Konu *</label>
+            <input className="input w-full" value={topic} onChange={e => setTopic(e.target.value)} placeholder="Derste işlenen konu" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Açıklama</label>
+            <textarea className="input w-full" rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Ek açıklama (opsiyonel)" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <button onClick={onClose} className="btn-secondary">İptal</button>
+          <button onClick={handleSave} disabled={saving} className="btn-primary">{saving ? 'Kaydediliyor...' : 'Güncelle'}</button>
+        </div>
+      </div>
     </div>
   );
 }

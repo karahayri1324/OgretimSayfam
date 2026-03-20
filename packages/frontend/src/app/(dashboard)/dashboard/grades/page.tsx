@@ -14,6 +14,10 @@ import {
   ChevronDown,
   Users,
   User,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -21,6 +25,7 @@ import {
 /* ------------------------------------------------------------------ */
 
 interface GradeCategory {
+  id?: string;
   name: string;
   code: string;
   weight: number;
@@ -31,10 +36,14 @@ interface GradeItem {
   score: number;
   description?: string;
   date: string;
-  subject: { name: string; code?: string; color?: string };
+  subject: { id?: string; name: string; code?: string; color?: string };
   category: GradeCategory;
   teacherProfile?: { user: { firstName: string; lastName: string } };
   term?: { id: string; name: string };
+  studentProfileId?: string;
+  subjectId?: string;
+  categoryId?: string;
+  termId?: string;
 }
 
 interface SubjectGroup {
@@ -53,7 +62,12 @@ interface ClassStudent {
     id: string;
     score: number;
     date: string;
+    description?: string;
     category: GradeCategory;
+    categoryId?: string;
+    subjectId?: string;
+    termId?: string;
+    studentProfileId?: string;
   }[];
 }
 
@@ -308,6 +322,356 @@ function EmptyState() {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Create / Edit Grade Modal                                          */
+/* ------------------------------------------------------------------ */
+
+function GradeModal({
+  mode,
+  initialData,
+  classes,
+  subjects,
+  categories,
+  terms,
+  onClose,
+  onSaved,
+}: {
+  mode: 'create' | 'edit';
+  initialData?: {
+    id?: string;
+    studentProfileId?: string;
+    subjectId?: string;
+    categoryId?: string;
+    termId?: string;
+    score?: number;
+    description?: string;
+    date?: string;
+  };
+  classes: { id: string; name: string }[];
+  subjects: { id: string; name: string }[];
+  categories: { id: string; name: string; code: string; weight: number }[];
+  terms: { id: string; name: string }[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id || '');
+  const [classStudents, setClassStudents] = useState<{ id: string; user: { firstName: string; lastName: string } }[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+
+  const [form, setForm] = useState({
+    studentProfileId: initialData?.studentProfileId || '',
+    subjectId: initialData?.subjectId || subjects[0]?.id || '',
+    categoryId: initialData?.categoryId || categories[0]?.id || '',
+    termId: initialData?.termId || terms[0]?.id || '',
+    score: initialData?.score ?? 0,
+    description: initialData?.description || '',
+    date: initialData?.date
+      ? new Date(initialData.date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0],
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch students when class changes (only in create mode)
+  useEffect(() => {
+    if (mode === 'edit') return;
+    if (!selectedClassId) return;
+    setStudentsLoading(true);
+    api
+      .get(`/classes/${selectedClassId}`)
+      .then(({ data }) => {
+        const students = data.data?.students || [];
+        setClassStudents(students);
+        if (students.length > 0 && !form.studentProfileId) {
+          setForm((prev) => ({ ...prev, studentProfileId: students[0].id }));
+        }
+      })
+      .catch(() => toast.error('Ogrenciler yuklenemedi'))
+      .finally(() => setStudentsLoading(false));
+  }, [selectedClassId, mode]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (mode === 'create') {
+      if (!form.studentProfileId || !form.subjectId || !form.categoryId || !form.termId) {
+        toast.error('Lutfen tum zorunlu alanlari doldurun');
+        return;
+      }
+    }
+
+    if (form.score < 0 || form.score > 100) {
+      toast.error('Not 0-100 arasinda olmalidir');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (mode === 'create') {
+        await api.post('/grades', {
+          studentProfileId: form.studentProfileId,
+          subjectId: form.subjectId,
+          categoryId: form.categoryId,
+          termId: form.termId,
+          score: Number(form.score),
+          description: form.description || undefined,
+          date: new Date(form.date).toISOString(),
+        });
+        toast.success('Not basariyla eklendi');
+      } else {
+        await api.put(`/grades/${initialData?.id}`, {
+          score: Number(form.score),
+          description: form.description || undefined,
+        });
+        toast.success('Not basariyla guncellendi');
+      }
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message?.[0] ||
+        err.response?.data?.message ||
+        (mode === 'create' ? 'Not eklenemedi' : 'Not guncellenemedi');
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">
+            {mode === 'create' ? 'Not Gir' : 'Notu Duzenle'}
+          </h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {mode === 'create' && (
+            <>
+              {/* Class selector (to filter students) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sinif *</label>
+                <select
+                  className="input"
+                  value={selectedClassId}
+                  onChange={(e) => {
+                    setSelectedClassId(e.target.value);
+                    setForm((prev) => ({ ...prev, studentProfileId: '' }));
+                  }}
+                >
+                  <option value="">Sinif secin</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Student selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ogrenci *</label>
+                {studentsLoading ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-gray-400">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Yukleniyor...
+                  </div>
+                ) : (
+                  <select
+                    className="input"
+                    value={form.studentProfileId}
+                    onChange={(e) => setForm({ ...form, studentProfileId: e.target.value })}
+                    required
+                  >
+                    <option value="">Ogrenci secin</option>
+                    {classStudents.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.user.firstName} {st.user.lastName}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ders *</label>
+                <select
+                  className="input"
+                  value={form.subjectId}
+                  onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
+                  required
+                >
+                  <option value="">Ders secin</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Term */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Donem *</label>
+                <select
+                  className="input"
+                  value={form.termId}
+                  onChange={(e) => setForm({ ...form, termId: e.target.value })}
+                  required
+                >
+                  <option value="">Donem secin</option>
+                  {terms.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* Category */}
+          {mode === 'create' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
+              <select
+                className="input"
+                value={form.categoryId}
+                onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                required
+              >
+                <option value="">Kategori secin</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (Agirlik: %{Math.round(c.weight * 100)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Score */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Not (0-100) *</label>
+            <input
+              type="number"
+              className="input"
+              min={0}
+              max={100}
+              value={form.score}
+              onChange={(e) => setForm({ ...form, score: Number(e.target.value) })}
+              required
+            />
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tarih *</label>
+            <input
+              type="date"
+              className="input"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Aciklama</label>
+            <textarea
+              className="input min-h-[80px]"
+              placeholder="Aciklama (istege bagli)"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Iptal
+            </button>
+            <button
+              type="submit"
+              className="btn-primary flex-1 flex items-center justify-center gap-2"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : mode === 'create' ? (
+                <Plus className="w-4 h-4" />
+              ) : (
+                <Pencil className="w-4 h-4" />
+              )}
+              {mode === 'create' ? 'Kaydet' : 'Guncelle'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Delete Confirmation Modal                                          */
+/* ------------------------------------------------------------------ */
+
+function DeleteConfirmModal({
+  title,
+  message,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    await onConfirm();
+    setDeleting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+          <p className="text-sm text-gray-500">{message}</p>
+        </div>
+        <div className="p-6 border-t border-gray-100 flex gap-3">
+          <button onClick={onClose} className="btn-secondary flex-1" disabled={deleting}>
+            Iptal
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            disabled={deleting}
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Sil
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Student / Parent View                                              */
 /* ------------------------------------------------------------------ */
 
@@ -392,6 +756,7 @@ function StudentGradesView({ studentProfileId }: { studentProfileId: string }) {
 function TeacherGradesView() {
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string; color?: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; code: string; weight: number }[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedTermId, setSelectedTermId] = useState('');
@@ -400,18 +765,28 @@ function TeacherGradesView() {
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
 
-  // Fetch classes and subjects on mount
+  // Modal state
+  const [gradeModal, setGradeModal] = useState<{
+    mode: 'create' | 'edit';
+    initialData?: any;
+  } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ gradeId: string } | null>(null);
+
+  // Fetch classes, subjects, and categories on mount
   useEffect(() => {
     const fetchInit = async () => {
       try {
-        const [classRes, subjectRes] = await Promise.all([
+        const [classRes, subjectRes, catRes] = await Promise.all([
           api.get('/classes'),
           api.get('/subjects'),
+          api.get('/grades/categories'),
         ]);
         const classList = classRes.data.data || [];
         const subjectList = subjectRes.data.data || [];
+        const catList = catRes.data.data || [];
         setClasses(classList);
         setSubjects(subjectList);
+        setCategories(catList);
         if (classList.length > 0) setSelectedClassId(classList[0].id);
         if (subjectList.length > 0) setSelectedSubjectId(subjectList[0].id);
       } catch {
@@ -423,9 +798,8 @@ function TeacherGradesView() {
     fetchInit();
   }, []);
 
-  // Fetch terms from first student's grades to populate term dropdown
-  // We use a separate lightweight call when class/subject changes
-  useEffect(() => {
+  // Fetch students and grades
+  const fetchClassGrades = useCallback(() => {
     if (!selectedClassId || !selectedSubjectId) return;
     setTableLoading(true);
 
@@ -456,6 +830,21 @@ function TeacherGradesView() {
       })
       .finally(() => setTableLoading(false));
   }, [selectedClassId, selectedSubjectId, selectedTermId]);
+
+  useEffect(() => {
+    fetchClassGrades();
+  }, [fetchClassGrades]);
+
+  // Delete handler
+  const handleDeleteGrade = async (gradeId: string) => {
+    try {
+      await api.delete(`/grades/${gradeId}`);
+      toast.success('Not basariyla silindi');
+      fetchClassGrades();
+    } catch {
+      toast.error('Not silinemedi');
+    }
+  };
 
   if (loading) {
     return (
@@ -489,8 +878,8 @@ function TeacherGradesView() {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      {/* Filters + Add button */}
+      <div className="flex flex-wrap gap-3 items-center">
         <select
           className="input w-48"
           value={selectedClassId}
@@ -514,6 +903,24 @@ function TeacherGradesView() {
           ))}
         </select>
         <TermSelector terms={terms} selectedTermId={selectedTermId} onChange={setSelectedTermId} />
+
+        <div className="ml-auto">
+          <button
+            onClick={() =>
+              setGradeModal({
+                mode: 'create',
+                initialData: {
+                  subjectId: selectedSubjectId,
+                  termId: selectedTermId || terms[0]?.id || '',
+                },
+              })
+            }
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Not Gir
+          </button>
+        </div>
       </div>
 
       {/* Class average summary */}
@@ -577,13 +984,49 @@ function TeacherGradesView() {
                             <span className="text-xs text-gray-400">-</span>
                           ) : (
                             st.grades.map((g) => (
-                              <span
-                                key={g.id}
-                                className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-xs font-bold border ${scoreColorClass(g.score)}`}
-                                title={`${g.category.name} - ${formatDate(g.date)}`}
-                              >
-                                {g.score}
-                              </span>
+                              <div key={g.id} className="relative group">
+                                <span
+                                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-xs font-bold border ${scoreColorClass(g.score)}`}
+                                  title={`${g.category.name} - ${formatDate(g.date)}`}
+                                >
+                                  {g.score}
+                                </span>
+                                {/* Edit/Delete buttons on hover */}
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-white shadow-lg rounded-lg px-1 py-0.5 border border-gray-200 z-10">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setGradeModal({
+                                        mode: 'edit',
+                                        initialData: {
+                                          id: g.id,
+                                          score: g.score,
+                                          description: g.description,
+                                          date: g.date,
+                                          categoryId: g.categoryId,
+                                          subjectId: g.subjectId,
+                                          termId: g.termId,
+                                          studentProfileId: g.studentProfileId || st.id,
+                                        },
+                                      });
+                                    }}
+                                    className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                    title="Duzenle"
+                                  >
+                                    <Pencil className="w-3 h-3 text-blue-600" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteModal({ gradeId: g.id });
+                                    }}
+                                    className="p-1 hover:bg-red-50 rounded transition-colors"
+                                    title="Sil"
+                                  >
+                                    <Trash2 className="w-3 h-3 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
                             ))
                           )}
                         </div>
@@ -613,6 +1056,33 @@ function TeacherGradesView() {
           </>
         )}
       </div>
+
+      {/* Grade Create/Edit Modal */}
+      {gradeModal && (
+        <GradeModal
+          mode={gradeModal.mode}
+          initialData={gradeModal.initialData}
+          classes={classes}
+          subjects={subjects}
+          categories={categories}
+          terms={terms}
+          onClose={() => setGradeModal(null)}
+          onSaved={fetchClassGrades}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <DeleteConfirmModal
+          title="Notu Sil"
+          message="Bu notu silmek istediginizden emin misiniz? Bu islem geri alinamaz."
+          onConfirm={async () => {
+            await handleDeleteGrade(deleteModal.gradeId);
+            setDeleteModal(null);
+          }}
+          onClose={() => setDeleteModal(null)}
+        />
+      )}
     </div>
   );
 }

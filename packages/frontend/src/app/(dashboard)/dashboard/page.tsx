@@ -67,6 +67,26 @@ interface Grade {
   createdAt: string;
 }
 
+interface ParentChildData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  className: string;
+  todayClasses: TimetableEntry[];
+  timeSlots: TimeSlot[];
+  recentGrades: Grade[];
+  absenceCount: number;
+  pendingAssignments: Assignment[];
+  gradeAverage: number;
+}
+
+interface ParentData {
+  children: ParentChildData[];
+  recentAnnouncements: Announcement[];
+  isWeekend: boolean;
+  dayOfWeek: string;
+}
+
 interface AdminData {
   stats: {
     teacherCount: number;
@@ -787,6 +807,266 @@ function TeacherDashboard() {
   );
 }
 
+// ==================== PARENT DASHBOARD ====================
+
+function ParentDashboard() {
+  const { user } = useAuthStore();
+  const [data, setData] = useState<ParentData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeChildIndex, setActiveChildIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: res } = await api.get('/dashboard/parent');
+        setData(res.data);
+      } catch (err) {
+        console.error('Dashboard yuklenemedi:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user) fetchData();
+  }, [user]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <EmptyState message="Veriler yuklenemedi" />;
+
+  const todayLabel = data.dayOfWeek ? dayLabels[data.dayOfWeek] || data.dayOfWeek : '';
+  const child = data.children[activeChildIndex];
+
+  if (!child) {
+    return (
+      <div className="space-y-6">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-6 text-white shadow-xl">
+          <h1 className="text-2xl font-bold">Merhaba, {user?.firstName || 'Veli'}!</h1>
+          <p className="text-primary-200 text-sm mt-1">Henuz bagli ogrenci bulunamadi.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 p-6 text-white shadow-xl">
+        <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"></div>
+        <div className="absolute -right-4 top-12 w-24 h-24 bg-white/5 rounded-full"></div>
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-5 h-5 text-teal-200" />
+            <p className="text-teal-100 text-sm font-medium">
+              {data.isWeekend ? 'Iyi tatiller!' : `${todayLabel}`}
+            </p>
+          </div>
+          <h1 className="text-2xl font-bold">
+            Merhaba, {user?.firstName || 'Veli'}!
+          </h1>
+          <p className="text-teal-200 text-sm mt-1">
+            {data.children.length === 1
+              ? `${child.firstName} ${child.lastName} - ${child.className}`
+              : `${data.children.length} ogrenci takip ediyorsunuz.`}
+          </p>
+        </div>
+      </div>
+
+      {/* Child tabs (if multiple children) */}
+      {data.children.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {data.children.map((c, idx) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveChildIndex(idx)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                idx === activeChildIndex
+                  ? 'bg-teal-600 text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              {c.firstName} {c.lastName}
+              <span className={`text-xs ${idx === activeChildIndex ? 'text-teal-200' : 'text-gray-400'}`}>
+                ({c.className})
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Child info card */}
+      <div className="card !p-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
+            <GraduationCap className="w-6 h-6 text-teal-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">{child.firstName} {child.lastName}</h3>
+            <p className="text-sm text-gray-500">Sinif: {child.className}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="card !p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+              <XCircle className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">{child.absenceCount}</p>
+              <p className="text-xs text-gray-500">Devamsizlik</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card !p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">{child.gradeAverage || '-'}</p>
+              <p className="text-xs text-gray-500">Not Ort.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card !p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+              <ClipboardList className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">{child.pendingAssignments.length}</p>
+              <p className="text-xs text-gray-500">Bekleyen Odev</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card !p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">
+                {data.isWeekend ? '-' : child.todayClasses.length}
+              </p>
+              <p className="text-xs text-gray-500">Bugun Ders</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Today's schedule */}
+      {!data.isWeekend && (
+        <div className="card">
+          <SectionHeader
+            icon={Clock}
+            title={`Bugunku Dersler - ${todayLabel}`}
+          />
+          <ScheduleTimeline
+            entries={child.todayClasses}
+            timeSlots={child.timeSlots}
+            role="STUDENT"
+          />
+        </div>
+      )}
+
+      {/* Bottom row: announcements + assignments */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Announcements */}
+        <div className="card">
+          <SectionHeader icon={Bell} title="Son Duyurular" />
+          <AnnouncementList announcements={data.recentAnnouncements} />
+        </div>
+
+        {/* Pending assignments */}
+        <div className="card">
+          <SectionHeader icon={ClipboardList} title="Bekleyen Odevler" />
+          {child.pendingAssignments.length === 0 ? (
+            <EmptyState message="Bekleyen odev yok" />
+          ) : (
+            <div className="space-y-3">
+              {child.pendingAssignments.map((a) => {
+                const dueDate = new Date(a.dueDate);
+                const now = new Date();
+                const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                const isUrgent = diffDays <= 2;
+                return (
+                  <div
+                    key={a.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      isUrgent ? 'border-red-200 bg-red-50/50' : 'border-gray-100 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-primary-50'}`}>
+                      <FileText className={`w-4 h-4 ${isUrgent ? 'text-red-600' : 'text-primary-600'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{a.title}</p>
+                      <p className="text-xs text-gray-400">{a.subject.name}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-xs font-medium ${isUrgent ? 'text-red-600' : 'text-gray-500'}`}>
+                        {formatDate(a.dueDate)}
+                      </p>
+                      {isUrgent && diffDays > 0 && (
+                        <p className="text-[10px] text-red-500 font-medium">{diffDays} gun kaldi</p>
+                      )}
+                      {diffDays <= 0 && (
+                        <p className="text-[10px] text-red-600 font-bold">Bugun!</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent grades */}
+      {child.recentGrades && child.recentGrades.length > 0 && (
+        <div className="card">
+          <SectionHeader icon={BarChart3} title="Son Notlar" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {child.recentGrades.slice(0, 6).map((g) => (
+              <div
+                key={g.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  g.score >= 70
+                    ? 'border-emerald-100 bg-emerald-50/30'
+                    : g.score >= 50
+                      ? 'border-amber-100 bg-amber-50/30'
+                      : 'border-red-100 bg-red-50/30'
+                }`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                    g.score >= 70
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : g.score >= 50
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {g.score}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{g.subject.name}</p>
+                  <p className="text-xs text-gray-400">{g.category.name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ==================== ADMIN DASHBOARD ====================
 
 function AdminStatCard({
@@ -1044,7 +1324,11 @@ export default function DashboardPage() {
     return <AdminDashboard />;
   }
 
-  // Fallback (e.g., PARENT or unknown role)
+  if (user.role === 'PARENT') {
+    return <ParentDashboard />;
+  }
+
+  // Fallback (unknown role)
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-6 text-white shadow-xl">

@@ -7,6 +7,11 @@ const SALT_ROUNDS = 10;
 const DEFAULT_PASSWORD = '123456';
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Seed is disabled in production environment');
+    process.exit(0);
+  }
+
   console.log('🌱 Seed başlatılıyor...');
 
   const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);

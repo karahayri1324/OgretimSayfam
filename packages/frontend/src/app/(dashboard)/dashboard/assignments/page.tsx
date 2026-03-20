@@ -21,6 +21,9 @@ import {
   Calendar,
   BookOpen,
   User,
+  Pencil,
+  Trash2,
+  Award,
 } from 'lucide-react';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -36,11 +39,11 @@ const SUBJECT_COLORS = [
 ];
 
 const STATUS_LABELS: Record<string, string> = {
-  ALL: 'Tümü',
+  ALL: 'Tumu',
   PENDING: 'Bekleyen',
   SUBMITTED: 'Teslim Edildi',
-  OVERDUE: 'Geç Kaldı',
-  GRADED: 'Puanlandı',
+  OVERDUE: 'Gec Kaldi',
+  GRADED: 'Puanlandi',
 };
 
 const SORT_OPTIONS = [
@@ -88,7 +91,7 @@ function DueDateBadge({ dueDate, status }: { dueDate: string; status: string }) 
     return (
       <span className="badge badge-purple flex items-center gap-1">
         <Star className="w-3 h-3" />
-        Puanlandı
+        Puanlandi
       </span>
     );
   }
@@ -107,7 +110,7 @@ function DueDateBadge({ dueDate, status }: { dueDate: string; status: string }) 
     return (
       <span className="badge badge-red flex items-center gap-1">
         <AlertTriangle className="w-3 h-3" />
-        Süresi geçti
+        Suresi gecti
       </span>
     );
   }
@@ -115,7 +118,7 @@ function DueDateBadge({ dueDate, status }: { dueDate: string; status: string }) 
     return (
       <span className="badge badge-red flex items-center gap-1 animate-pulse">
         <Clock className="w-3 h-3" />
-        Bugün son gün!
+        Bugun son gun!
       </span>
     );
   }
@@ -123,15 +126,66 @@ function DueDateBadge({ dueDate, status }: { dueDate: string; status: string }) 
     return (
       <span className="badge badge-orange flex items-center gap-1">
         <Clock className="w-3 h-3" />
-        {daysLeft} gün kaldı
+        {daysLeft} gun kaldi
       </span>
     );
   }
   return (
     <span className="badge badge-blue flex items-center gap-1">
       <Calendar className="w-3 h-3" />
-      {daysLeft} gün kaldı
+      {daysLeft} gun kaldi
     </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Delete Confirmation Modal                                          */
+/* ------------------------------------------------------------------ */
+
+function DeleteConfirmModal({
+  title,
+  message,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    await onConfirm();
+    setDeleting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+          <p className="text-sm text-gray-500">{message}</p>
+        </div>
+        <div className="p-6 border-t border-gray-100 flex gap-3">
+          <button onClick={onClose} className="btn-secondary flex-1" disabled={deleting}>
+            Iptal
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            disabled={deleting}
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Sil
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -194,7 +248,7 @@ function AssignmentDetailModal({
           {/* Description */}
           {assignment.description && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Açıklama</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Aciklama</h3>
               <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
                 {assignment.description}
               </p>
@@ -205,7 +259,7 @@ function AssignmentDetailModal({
           {assignment.class?.name && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Users className="w-4 h-4" />
-              <span>Sınıf: {assignment.class.name}</span>
+              <span>Sinif: {assignment.class.name}</span>
             </div>
           )}
 
@@ -221,7 +275,7 @@ function AssignmentDetailModal({
               </div>
               {submission.feedback && (
                 <div>
-                  <span className="text-sm font-semibold text-purple-800">Öğretmen Yorumu</span>
+                  <span className="text-sm font-semibold text-purple-800">Ogretmen Yorumu</span>
                   <p className="text-sm text-purple-700 mt-1">{submission.feedback}</p>
                 </div>
               )}
@@ -310,7 +364,7 @@ function StudentAssignmentCard({
                     setExpanded(!expanded);
                   }}
                 >
-                  {expanded ? 'Daha az' : 'Devamını oku'}
+                  {expanded ? 'Daha az' : 'Devamini oku'}
                 </button>
               )}
             </div>
@@ -363,7 +417,7 @@ function StudentView() {
         const { data } = await api.get(endpoint);
         setAssignments(data.data || []);
       } catch {
-        toast.error('Ödevler yüklenemedi');
+        toast.error('Odevler yuklenemedi');
       } finally {
         setLoading(false);
       }
@@ -465,7 +519,7 @@ function StudentView() {
           </div>
           <div>
             <p className="text-lg font-bold text-gray-900">{stats.overdue}</p>
-            <p className="text-xs text-gray-500">Geç Kaldı</p>
+            <p className="text-xs text-gray-500">Gec Kaldi</p>
           </div>
         </div>
         <div className="card !p-4 flex items-center gap-3">
@@ -474,7 +528,7 @@ function StudentView() {
           </div>
           <div>
             <p className="text-lg font-bold text-gray-900">{stats.graded}</p>
-            <p className="text-xs text-gray-500">Puanlandı</p>
+            <p className="text-xs text-gray-500">Puanlandi</p>
           </div>
         </div>
       </div>
@@ -493,7 +547,7 @@ function StudentView() {
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value)}
           >
-            <option value="ALL">Tüm Dersler</option>
+            <option value="ALL">Tum Dersler</option>
             {subjects.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -541,7 +595,7 @@ function StudentView() {
         <div className="card text-center py-12">
           <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500 font-medium">
-            {assignments.length === 0 ? 'Henüz ödev yok' : 'Filtreye uygun ödev bulunamadı'}
+            {assignments.length === 0 ? 'Henuz odev yok' : 'Filtreye uygun odev bulunamadi'}
           </p>
           {assignments.length > 0 && (
             <button
@@ -566,7 +620,7 @@ function StudentView() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Teacher: Submissions Modal                                         */
+/*  Teacher: Submissions Modal (with grading)                          */
 /* ------------------------------------------------------------------ */
 
 function SubmissionsModal({
@@ -580,14 +634,44 @@ function SubmissionsModal({
 }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
+  const [gradeForm, setGradeForm] = useState({ score: 0, feedback: '' });
+  const [gradingLoading, setGradingLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchSubmissions = useCallback(() => {
+    setLoading(true);
     api
       .get(`/assignments/${assignmentId}/submissions`)
       .then(({ data: res }) => setData(res.data))
-      .catch(() => toast.error('Teslimler yüklenemedi'))
+      .catch(() => toast.error('Teslimler yuklenemedi'))
       .finally(() => setLoading(false));
   }, [assignmentId]);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [fetchSubmissions]);
+
+  const handleGradeSubmission = async (submissionId: string) => {
+    if (gradeForm.score < 0 || gradeForm.score > 100) {
+      toast.error('Not 0-100 arasinda olmalidir');
+      return;
+    }
+    setGradingLoading(true);
+    try {
+      await api.post(`/assignments/submissions/${submissionId}/grade`, {
+        score: Number(gradeForm.score),
+        feedback: gradeForm.feedback || undefined,
+      });
+      toast.success('Odev basariyla notlandi');
+      setGradingSubmissionId(null);
+      setGradeForm({ score: 0, feedback: '' });
+      fetchSubmissions();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Notlandirma basarisiz');
+    } finally {
+      setGradingLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -611,62 +695,147 @@ function SubmissionsModal({
               <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
             </div>
           ) : !data ? (
-            <p className="text-gray-500 text-center py-8">Veri yüklenemedi</p>
+            <p className="text-gray-500 text-center py-8">Veri yuklenemedi</p>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Users className="w-4 h-4" />
                 <span>
-                  {data.submissions?.length || 0} / {data.totalStudents || '?'} öğrenci teslim etti
+                  {data.submissions?.length || 0} / {data.totalStudents || '?'} ogrenci teslim etti
                 </span>
               </div>
 
               {data.submissions?.length === 0 ? (
                 <div className="text-center py-8">
                   <ClipboardList className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                  <p className="text-gray-400 text-sm">Henüz teslim yok</p>
+                  <p className="text-gray-400 text-sm">Henuz teslim yok</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {data.submissions?.map((sub: any) => (
-                    <div
-                      key={sub.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                          <User className="w-4 h-4 text-primary-600" />
+                    <div key={sub.id} className="bg-gray-50 rounded-xl overflow-hidden">
+                      <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                            <User className="w-4 h-4 text-primary-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {sub.studentProfile?.user?.firstName} {sub.studentProfile?.user?.lastName}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {sub.submittedAt ? formatDateTime(sub.submittedAt) : 'Teslim edilmedi'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {sub.studentProfile?.user?.firstName} {sub.studentProfile?.user?.lastName}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {sub.submittedAt ? formatDateTime(sub.submittedAt) : 'Teslim edilmedi'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`badge ${
-                            sub.status === 'GRADED'
-                              ? 'badge-purple'
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`badge ${
+                              sub.status === 'GRADED'
+                                ? 'badge-purple'
+                                : sub.status === 'SUBMITTED'
+                                  ? 'badge-green'
+                                  : sub.status === 'LATE'
+                                    ? 'badge-orange'
+                                    : 'badge-gray'
+                            }`}
+                          >
+                            {sub.status === 'GRADED'
+                              ? `${sub.score}/100`
                               : sub.status === 'SUBMITTED'
-                                ? 'badge-green'
+                                ? 'Teslim Edildi'
                                 : sub.status === 'LATE'
-                                  ? 'badge-orange'
-                                  : 'badge-gray'
-                          }`}
-                        >
-                          {sub.status === 'GRADED'
-                            ? `${sub.score}/100`
-                            : sub.status === 'SUBMITTED'
-                              ? 'Teslim Edildi'
-                              : sub.status === 'LATE'
-                                ? 'Geç Teslim'
-                                : 'Bekliyor'}
-                        </span>
+                                  ? 'Gec Teslim'
+                                  : 'Bekliyor'}
+                          </span>
+
+                          {/* Grade button - show for SUBMITTED or LATE submissions, or re-grade for GRADED */}
+                          {(sub.status === 'SUBMITTED' || sub.status === 'LATE' || sub.status === 'GRADED') && (
+                            <button
+                              onClick={() => {
+                                if (gradingSubmissionId === sub.id) {
+                                  setGradingSubmissionId(null);
+                                } else {
+                                  setGradingSubmissionId(sub.id);
+                                  setGradeForm({
+                                    score: sub.status === 'GRADED' ? sub.score : 0,
+                                    feedback: sub.feedback || '',
+                                  });
+                                }
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 transition-colors"
+                            >
+                              <Award className="w-3.5 h-3.5" />
+                              {sub.status === 'GRADED' ? 'Tekrar Notla' : 'Notla'}
+                            </button>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Inline grading form */}
+                      {gradingSubmissionId === sub.id && (
+                        <div className="px-3 pb-3 pt-1 border-t border-gray-100">
+                          <div className="bg-white rounded-lg p-3 space-y-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Not (0-100) *
+                              </label>
+                              <input
+                                type="number"
+                                className="input !text-sm"
+                                min={0}
+                                max={100}
+                                value={gradeForm.score}
+                                onChange={(e) =>
+                                  setGradeForm({ ...gradeForm, score: Number(e.target.value) })
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Geri Bildirim
+                              </label>
+                              <textarea
+                                className="input !text-sm min-h-[60px]"
+                                placeholder="Ogretmen yorumu (istege bagli)"
+                                value={gradeForm.feedback}
+                                onChange={(e) =>
+                                  setGradeForm({ ...gradeForm, feedback: e.target.value })
+                                }
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setGradingSubmissionId(null)}
+                                className="btn-secondary text-xs px-3 py-1.5"
+                              >
+                                Iptal
+                              </button>
+                              <button
+                                onClick={() => handleGradeSubmission(sub.id)}
+                                disabled={gradingLoading}
+                                className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+                              >
+                                {gradingLoading ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="w-3 h-3" />
+                                )}
+                                Kaydet
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Show existing feedback if graded and not in edit mode */}
+                      {sub.status === 'GRADED' && sub.feedback && gradingSubmissionId !== sub.id && (
+                        <div className="px-3 pb-3 pt-1 border-t border-gray-100">
+                          <p className="text-xs text-gray-500">
+                            <span className="font-medium">Geri bildirim:</span> {sub.feedback}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -714,8 +883,6 @@ function CreateAssignmentModal({
   const [termsLoading, setTermsLoading] = useState(true);
 
   useEffect(() => {
-    // Try to find the current or latest term via the grades endpoint or classes
-    // Since there's no terms endpoint, fetch assignments for the first class to extract termId
     if (classes.length > 0) {
       api
         .get(`/assignments/class/${classes[0].id}`)
@@ -735,7 +902,7 @@ function CreateAssignmentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.classId || !form.subjectId || !form.dueDate) {
-      toast.error('Lütfen tüm zorunlu alanları doldurun');
+      toast.error('Lutfen tum zorunlu alanlari doldurun');
       return;
     }
     setSubmitting(true);
@@ -745,11 +912,11 @@ function CreateAssignmentModal({
         termId: termId || undefined,
         dueDate: new Date(form.dueDate).toISOString(),
       });
-      toast.success('Ödev oluşturuldu');
+      toast.success('Odev olusturuldu');
       onCreated();
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.message?.[0] || err.response?.data?.message || 'Ödev oluşturulamadı');
+      toast.error(err.response?.data?.message?.[0] || err.response?.data?.message || 'Odev olusturulamadi');
     } finally {
       setSubmitting(false);
     }
@@ -762,18 +929,18 @@ function CreateAssignmentModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">Yeni Ödev Oluştur</h2>
+          <h2 className="text-lg font-bold text-gray-900">Yeni Odev Olustur</h2>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sınıf *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sinif *</label>
             <select
               className="input"
               value={form.classId}
               onChange={(e) => setForm({ ...form, classId: e.target.value })}
               required
             >
-              <option value="">Sınıf seçin</option>
+              <option value="">Sinif secin</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -787,27 +954,27 @@ function CreateAssignmentModal({
               onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
               required
             >
-              <option value="">Ders seçin</option>
+              <option value="">Ders secin</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Başlık *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Baslik *</label>
             <input
               className="input"
-              placeholder="Ödev başlığı"
+              placeholder="Odev basligi"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Aciklama</label>
             <textarea
               className="input min-h-[100px]"
-              placeholder="Ödev açıklaması (isteğe bağlı)"
+              placeholder="Odev aciklamasi (istege bagli)"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -824,7 +991,7 @@ function CreateAssignmentModal({
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
-              İptal
+              Iptal
             </button>
             <button
               type="submit"
@@ -832,7 +999,112 @@ function CreateAssignmentModal({
               disabled={submitting || termsLoading}
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Oluştur
+              Olustur
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Teacher: Edit Assignment Modal                                     */
+/* ------------------------------------------------------------------ */
+
+function EditAssignmentModal({
+  assignment,
+  onClose,
+  onUpdated,
+}: {
+  assignment: any;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: assignment.title || '',
+    description: assignment.description || '',
+    dueDate: assignment.dueDate
+      ? new Date(assignment.dueDate).toISOString().slice(0, 16)
+      : '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title) {
+      toast.error('Baslik zorunludur');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const payload: any = { title: form.title };
+      if (form.description) payload.description = form.description;
+      if (form.dueDate) payload.dueDate = new Date(form.dueDate).toISOString();
+
+      await api.put(`/assignments/${assignment.id}`, payload);
+      toast.success('Odev basariyla guncellendi');
+      onUpdated();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Odev guncellenemedi');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Odevi Duzenle</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Baslik *</label>
+            <input
+              className="input"
+              placeholder="Odev basligi"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Aciklama</label>
+            <textarea
+              className="input min-h-[100px]"
+              placeholder="Odev aciklamasi"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Son Teslim Tarihi</label>
+            <input
+              type="datetime-local"
+              className="input"
+              value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Iptal
+            </button>
+            <button
+              type="submit"
+              className="btn-primary flex-1 flex items-center justify-center gap-2"
+              disabled={submitting}
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+              Guncelle
             </button>
           </div>
         </form>
@@ -848,9 +1120,13 @@ function CreateAssignmentModal({
 function TeacherAssignmentCard({
   assignment,
   onViewSubmissions,
+  onEdit,
+  onDelete,
 }: {
   assignment: any;
   onViewSubmissions: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const daysLeft = getDaysUntilDue(assignment.dueDate);
@@ -900,7 +1176,7 @@ function TeacherAssignmentCard({
               className="text-xs text-primary-600 hover:text-primary-700 mt-1 font-medium"
               onClick={() => setExpanded(!expanded)}
             >
-              {expanded ? 'Daha az' : 'Devamını oku'}
+              {expanded ? 'Daha az' : 'Devamini oku'}
             </button>
           )}
 
@@ -911,11 +1187,11 @@ function TeacherAssignmentCard({
               <span>Son: {formatDate(assignment.dueDate)}</span>
             </div>
             {isOverdue ? (
-              <span className="badge badge-gray text-[10px]">Süre doldu</span>
+              <span className="badge badge-gray text-[10px]">Sure doldu</span>
             ) : daysLeft === 0 ? (
-              <span className="badge badge-red text-[10px] animate-pulse">Bugün son gün!</span>
+              <span className="badge badge-red text-[10px] animate-pulse">Bugun son gun!</span>
             ) : isUrgent ? (
-              <span className="badge badge-orange text-[10px]">{daysLeft} gün kaldı</span>
+              <span className="badge badge-orange text-[10px]">{daysLeft} gun kaldi</span>
             ) : null}
           </div>
         </div>
@@ -929,6 +1205,22 @@ function TeacherAssignmentCard({
             <ClipboardList className="w-4 h-4" />
             <span>{submissionCount} teslim</span>
           </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onEdit}
+              className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Duzenle"
+            >
+              <Pencil className="w-4 h-4 text-blue-600" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+              title="Sil"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -949,6 +1241,8 @@ function TeacherView() {
     id: string;
     title: string;
   } | null>(null);
+  const [editModal, setEditModal] = useState<any | null>(null);
+  const [deleteModal, setDeleteModal] = useState<any | null>(null);
 
   // Filters
   const [filterSubject, setFilterSubject] = useState('ALL');
@@ -960,7 +1254,7 @@ function TeacherView() {
       const { data } = await api.get('/assignments/teacher/my');
       setAssignments(data.data || []);
     } catch {
-      toast.error('Ödevler yüklenemedi');
+      toast.error('Odevler yuklenemedi');
     } finally {
       setLoading(false);
     }
@@ -982,6 +1276,17 @@ function TeacherView() {
     fetchInit();
     fetchAssignments();
   }, [fetchAssignments]);
+
+  // Delete handler
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    try {
+      await api.delete(`/assignments/${assignmentId}`);
+      toast.success('Odev basariyla silindi');
+      fetchAssignments();
+    } catch {
+      toast.error('Odev silinemedi');
+    }
+  };
 
   // Extract unique subjects/classes from assignments
   const assignmentSubjects = useMemo(() => {
@@ -1044,7 +1349,7 @@ function TeacherView() {
           className="btn-primary flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Yeni Ödev
+          Yeni Odev
         </button>
       </div>
 
@@ -1062,7 +1367,7 @@ function TeacherView() {
             value={filterClass}
             onChange={(e) => setFilterClass(e.target.value)}
           >
-            <option value="ALL">Tüm Sınıflar</option>
+            <option value="ALL">Tum Siniflar</option>
             {assignmentClasses.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -1074,7 +1379,7 @@ function TeacherView() {
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value)}
           >
-            <option value="ALL">Tüm Dersler</option>
+            <option value="ALL">Tum Dersler</option>
             {assignmentSubjects.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -1103,6 +1408,8 @@ function TeacherView() {
             key={a.id}
             assignment={a}
             onViewSubmissions={() => setSubmissionsModal({ id: a.id, title: a.title })}
+            onEdit={() => setEditModal(a)}
+            onDelete={() => setDeleteModal(a)}
           />
         ))}
       </div>
@@ -1111,14 +1418,14 @@ function TeacherView() {
         <div className="card text-center py-12">
           <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500 font-medium">
-            {assignments.length === 0 ? 'Henüz ödev oluşturmadınız' : 'Filtreye uygun ödev bulunamadı'}
+            {assignments.length === 0 ? 'Henuz odev olusturmadiniz' : 'Filtreye uygun odev bulunamadi'}
           </p>
           {assignments.length === 0 && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="text-sm text-primary-600 hover:text-primary-700 mt-2 font-medium"
             >
-              İlk ödevinizi oluşturun
+              Ilk odevinizi olusturun
             </button>
           )}
         </div>
@@ -1141,6 +1448,26 @@ function TeacherView() {
           onClose={() => setSubmissionsModal(null)}
         />
       )}
+
+      {editModal && (
+        <EditAssignmentModal
+          assignment={editModal}
+          onClose={() => setEditModal(null)}
+          onUpdated={fetchAssignments}
+        />
+      )}
+
+      {deleteModal && (
+        <DeleteConfirmModal
+          title="Odevi Sil"
+          message={`"${deleteModal.title}" odevini silmek istediginizden emin misiniz? Bu islem geri alinamaz.`}
+          onConfirm={async () => {
+            await handleDeleteAssignment(deleteModal.id);
+            setDeleteModal(null);
+          }}
+          onClose={() => setDeleteModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1161,11 +1488,11 @@ export default function AssignmentsPage() {
           <BookOpen className="w-5 h-5 text-primary-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ödevler</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Odevler</h1>
           <p className="text-sm text-gray-500">
             {isTeacher
-              ? 'Ödevlerinizi yönetin ve teslim durumlarını takip edin'
-              : 'Ödevlerinizi görüntüleyin ve takip edin'}
+              ? 'Odevlerinizi yonetin ve teslim durumlarini takip edin'
+              : 'Odevlerinizi goruntueleyin ve takip edin'}
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -18,6 +18,10 @@ import { SubstitutionsModule } from './modules/substitutions/substitutions.modul
 import { EventsModule } from './modules/events/events.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ClassroomsModule } from './modules/classrooms/classrooms.module';
+import { HealthModule } from './modules/health/health.module';
+import { AcademicYearsModule } from './modules/academic-years/academic-years.module';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
   imports: [
@@ -41,7 +45,10 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     SubstitutionsModule,
     EventsModule,
     NotificationsModule,
+    ClassroomsModule,
     DashboardModule,
+    HealthModule,
+    AcademicYearsModule,
   ],
   providers: [
     {
@@ -50,4 +57,11 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(TenantMiddleware)
+      .exclude('auth/(.*)', 'health')
+      .forRoutes('*');
+  }
+}

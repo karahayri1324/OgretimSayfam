@@ -2,8 +2,10 @@ import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, RefreshTokenDto, ChangePasswordDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, RefreshTokenDto, ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Kimlik Dogrulama')
@@ -45,6 +47,38 @@ export class AuthController {
   @ApiOperation({ summary: 'Çıkış yap' })
   async logout(@CurrentUser('id') userId: string) {
     const result = await this.authService.logout(userId);
+    return { success: true, data: result };
+  }
+
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Şifre sıfırlama talebi' })
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    const result = await this.authService.requestPasswordReset(body.email);
+    return { success: true, data: result };
+  }
+
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Şifre sıfırla' })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    const result = await this.authService.resetPassword(body.token, body.newPassword);
+    return { success: true, data: result };
+  }
+
+  @Post('register')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Yeni kullanıcı kaydı (admin)' })
+  async register(
+    @Body() dto: RegisterDto,
+    @CurrentUser('schoolId') schoolId: string,
+    @CurrentUser('role') role: string,
+  ) {
+    const result = await this.authService.register(dto, undefined, role === 'SUPER_ADMIN' ? undefined : schoolId);
     return { success: true, data: result };
   }
 }

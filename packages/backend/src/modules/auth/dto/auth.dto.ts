@@ -56,3 +56,21 @@ export class ChangePasswordDto {
   @MinLength(6, { message: 'Yeni şifre en az 6 karakter olmalıdır' })
   newPassword: string;
 }
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'admin@okul1.com' })
+  @IsEmail({}, { message: 'Geçerli bir e-posta adresi giriniz' })
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty({ message: 'Token boş olamaz' })
+  token: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(6, { message: 'Yeni şifre en az 6 karakter olmalıdır' })
+  newPassword: string;
+}

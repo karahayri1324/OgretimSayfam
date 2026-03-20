@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ClassDiaryService } from './class-diary.service';
 import { CreateClassDiaryDto, UpdateClassDiaryDto } from './dto/class-diary.dto';
@@ -44,6 +44,14 @@ export class ClassDiaryController {
     @Query('endDate') endDate: string,
   ) {
     return { success: true, data: await this.classDiaryService.getByClassDateRange(classId, startDate, endDate) };
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('TEACHER', 'SCHOOL_ADMIN')
+  @ApiOperation({ summary: 'Sınıf defteri kaydını sil' })
+  async delete(@Param('id') id: string) {
+    return { success: true, data: await this.classDiaryService.delete(id) };
   }
 
   @Put(':id/approve')

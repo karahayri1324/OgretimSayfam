@@ -20,6 +20,11 @@ export class TakeAttendanceDto {
   students: StudentAttendanceDto[];
 }
 
+export class UpdateAttendanceDto {
+  @ApiProperty({ enum: AttendanceStatus, required: false }) @IsOptional() @IsEnum(AttendanceStatus) status?: AttendanceStatus;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() note?: string;
+}
+
 export class TeacherAttendanceDto {
   @ApiProperty() @IsString() teacherProfileId: string;
   @ApiProperty() @IsDateString() date: string;
