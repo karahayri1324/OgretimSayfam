@@ -10,6 +10,7 @@ export class CreateUserDto {
   @ApiProperty({ required: false }) @IsOptional() @IsString() phone?: string;
   @ApiProperty({ enum: UserRole }) @IsEnum(UserRole) role: UserRole;
   @ApiProperty({ required: false }) @IsOptional() @IsString() schoolId?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() studentNumber?: string;
 }
 
 export class UpdateUserDto {

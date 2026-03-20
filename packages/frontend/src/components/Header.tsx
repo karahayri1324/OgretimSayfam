@@ -132,6 +132,7 @@ export default function Header() {
   const handleLogout = async () => {
     setUserMenuOpen(false);
     await logout();
+    window.location.href = '/login';
   };
 
   // Close dropdowns when clicking outside

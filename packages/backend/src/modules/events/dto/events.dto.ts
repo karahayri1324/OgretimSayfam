@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsEnum, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { EventType } from '@prisma/client';
 
@@ -9,6 +9,9 @@ export class CreateEventDto {
   @ApiProperty() @IsDateString() startDate: string;
   @ApiProperty({ required: false }) @IsOptional() @IsDateString() endDate?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() location?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() startTime?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() endTime?: string;
+  @ApiProperty({ required: false, type: [String] }) @IsOptional() @IsArray() targetClassIds?: string[];
 }
 
 export class UpdateEventDto {
@@ -17,4 +20,7 @@ export class UpdateEventDto {
   @ApiProperty({ required: false }) @IsOptional() @IsDateString() startDate?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsDateString() endDate?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() location?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() startTime?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() endTime?: string;
+  @ApiProperty({ required: false, type: [String] }) @IsOptional() @IsArray() targetClassIds?: string[];
 }

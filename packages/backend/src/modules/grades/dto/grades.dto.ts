@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsDateString, IsUUID, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString, IsUUID, Min, Max, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -21,4 +21,16 @@ export class CreateGradeCategoryDto {
   @ApiProperty({ example: 'Yazılı' }) @IsString() name: string;
   @ApiProperty({ example: 'EXAM' }) @IsString() code: string;
   @ApiProperty({ example: 0.5 }) @Type(() => Number) @IsNumber() weight: number;
+}
+
+export class BulkGradeEntryDto {
+  @ApiProperty() @IsUUID() classId: string;
+  @ApiProperty() @IsUUID() subjectId: string;
+  @ApiProperty() @IsUUID() termId: string;
+  @ApiProperty() @IsUUID() categoryId: string;
+  @ApiProperty() @IsDateString() date: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() description?: string;
+  @ApiProperty({ type: [Object] })
+  @IsArray()
+  grades: { studentProfileId: string; score: number }[];
 }

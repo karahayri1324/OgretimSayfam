@@ -57,6 +57,7 @@ interface SubjectGroup {
 
 interface ClassStudent {
   id: string;
+  studentNumber?: string;
   user: { firstName: string; lastName: string };
   grades: {
     id: string;
@@ -672,6 +673,278 @@ function DeleteConfirmModal({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Bulk Grade Modal                                                   */
+/* ------------------------------------------------------------------ */
+
+function BulkGradeModal({
+  classes,
+  subjects,
+  categories,
+  terms,
+  initialClassId,
+  initialSubjectId,
+  initialTermId,
+  onClose,
+  onSaved,
+}: {
+  classes: { id: string; name: string }[];
+  subjects: { id: string; name: string }[];
+  categories: { id: string; name: string; code: string; weight: number }[];
+  terms: { id: string; name: string }[];
+  initialClassId: string;
+  initialSubjectId: string;
+  initialTermId: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [selectedClassId, setSelectedClassId] = useState(initialClassId || classes[0]?.id || '');
+  const [selectedSubjectId, setSelectedSubjectId] = useState(initialSubjectId || subjects[0]?.id || '');
+  const [selectedTermId, setSelectedTermId] = useState(initialTermId || terms[0]?.id || '');
+  const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id || '');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = useState('');
+  const [classStudents, setClassStudents] = useState<{ id: string; studentNumber?: string; user: { firstName: string; lastName: string } }[]>([]);
+  const [scores, setScores] = useState<Record<string, string>>({});
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch students when class changes
+  useEffect(() => {
+    if (!selectedClassId) return;
+    setStudentsLoading(true);
+    api
+      .get(`/classes/${selectedClassId}`)
+      .then(({ data }) => {
+        const students = data.data?.students || [];
+        setClassStudents(students);
+        setScores({});
+      })
+      .catch(() => toast.error('Ogrenciler yuklenemedi'))
+      .finally(() => setStudentsLoading(false));
+  }, [selectedClassId]);
+
+  const handleScoreChange = (studentId: string, value: string) => {
+    const numVal = value === '' ? '' : value;
+    setScores((prev) => ({ ...prev, [studentId]: numVal }));
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedClassId || !selectedSubjectId || !selectedTermId || !selectedCategoryId) {
+      toast.error('Lutfen tum zorunlu alanlari doldurun');
+      return;
+    }
+
+    const gradeEntries = Object.entries(scores)
+      .filter(([, val]) => val !== '' && val !== undefined)
+      .map(([studentProfileId, val]) => ({
+        studentProfileId,
+        score: Number(val),
+      }))
+      .filter((e) => e.score >= 0 && e.score <= 100);
+
+    if (gradeEntries.length === 0) {
+      toast.error('En az bir ogrenci icin not girin');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post('/grades/bulk', {
+        classId: selectedClassId,
+        subjectId: selectedSubjectId,
+        termId: selectedTermId,
+        categoryId: selectedCategoryId,
+        date: new Date(date).toISOString(),
+        description: description || undefined,
+        grades: gradeEntries,
+      });
+      toast.success(`${gradeEntries.length} ogrenci icin notlar basariyla kaydedildi`);
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message?.[0] ||
+        err.response?.data?.message ||
+        'Toplu not girisi basarisiz';
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Toplu Not Gir</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* Filters row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sinif *</label>
+              <select
+                className="input"
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+              >
+                <option value="">Sinif secin</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ders *</label>
+              <select
+                className="input"
+                value={selectedSubjectId}
+                onChange={(e) => setSelectedSubjectId(e.target.value)}
+              >
+                <option value="">Ders secin</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Donem *</label>
+              <select
+                className="input"
+                value={selectedTermId}
+                onChange={(e) => setSelectedTermId(e.target.value)}
+              >
+                <option value="">Donem secin</option>
+                {terms.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
+              <select
+                className="input"
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+              >
+                <option value="">Kategori secin</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (Agirlik: %{Math.round(c.weight * 100)})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tarih *</label>
+              <input
+                type="date"
+                className="input"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Aciklama</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Aciklama (istege bagli)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Students table */}
+          {studentsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+            </div>
+          ) : classStudents.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-400 text-sm">
+                {selectedClassId ? 'Bu sinifta ogrenci yok' : 'Sinif secin'}
+              </p>
+            </div>
+          ) : (
+            <div className="border rounded-xl overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">#</th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Ogrenci</th>
+                    <th className="text-center text-xs font-medium text-gray-500 px-4 py-3 w-32">Not (0-100)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {classStudents.map((st, idx) => (
+                    <tr key={st.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 text-sm text-gray-400">{idx + 1}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center">
+                            <User className="w-3.5 h-3.5 text-primary-600" />
+                          </div>
+                          {st.studentNumber && (
+                            <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{st.studentNumber}</span>
+                          )}
+                          <span className="text-sm font-medium text-gray-900">
+                            {st.user.firstName} {st.user.lastName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          className="input w-24 text-center mx-auto"
+                          placeholder="-"
+                          value={scores[st.id] ?? ''}
+                          onChange={(e) => handleScoreChange(st.id, e.target.value)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Iptal
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="btn-primary flex-1 flex items-center justify-center gap-2"
+              disabled={submitting || classStudents.length === 0}
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              Tumunu Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Student / Parent View                                              */
 /* ------------------------------------------------------------------ */
 
@@ -771,6 +1044,7 @@ function TeacherGradesView() {
     initialData?: any;
   } | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ gradeId: string } | null>(null);
+  const [bulkModal, setBulkModal] = useState(false);
 
   // Fetch classes, subjects, and categories on mount
   useEffect(() => {
@@ -904,7 +1178,14 @@ function TeacherGradesView() {
         </select>
         <TermSelector terms={terms} selectedTermId={selectedTermId} onChange={setSelectedTermId} />
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setBulkModal(true)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Toplu Not Gir
+          </button>
           <button
             onClick={() =>
               setGradeModal({
@@ -973,6 +1254,9 @@ function TeacherGradesView() {
                           <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
                             <User className="w-4 h-4 text-primary-600" />
                           </div>
+                          {st.studentNumber && (
+                            <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{st.studentNumber}</span>
+                          )}
                           <span className="text-sm font-medium text-gray-900">
                             {st.user.firstName} {st.user.lastName}
                           </span>
@@ -1083,6 +1367,21 @@ function TeacherGradesView() {
           onClose={() => setDeleteModal(null)}
         />
       )}
+
+      {/* Bulk Grade Modal */}
+      {bulkModal && (
+        <BulkGradeModal
+          classes={classes}
+          subjects={subjects}
+          categories={categories}
+          terms={terms}
+          initialClassId={selectedClassId}
+          initialSubjectId={selectedSubjectId}
+          initialTermId={selectedTermId || terms[0]?.id || ''}
+          onClose={() => setBulkModal(false)}
+          onSaved={fetchClassGrades}
+        />
+      )}
     </div>
   );
 }
@@ -1096,7 +1395,7 @@ export default function GradesPage() {
 
   const isStudent = user?.role === 'STUDENT';
   const isParent = user?.role === 'PARENT';
-  const isTeacher = user?.role === 'TEACHER';
+  const isTeacher = user?.role === 'TEACHER' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
 
   // For parent: we need to figure out the child's studentProfileId.
   // The parent endpoint doesn't exist in the backend, so we fetch children info.

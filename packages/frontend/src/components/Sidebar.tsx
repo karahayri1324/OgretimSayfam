@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, School, BookOpen, Calendar, ClipboardCheck,
   GraduationCap, FileText, Bell, BookMarked, UserCheck, CalendarDays,
-  Settings, LogOut, ChevronLeft, Menu, Building2, DoorOpen, CalendarRange
+  Settings, LogOut, ChevronLeft, Menu, Building2, DoorOpen, CalendarRange, BarChart3
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,6 +22,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Dersler', href: '/dashboard/subjects', icon: BookOpen },
     { label: 'Ders Programı', href: '/dashboard/timetable', icon: Calendar },
     { label: 'Yoklama', href: '/dashboard/attendance', icon: ClipboardCheck },
+    { label: 'Devamsızlık Raporu', href: '/dashboard/attendance-report', icon: BarChart3 },
     { label: 'Notlar', href: '/dashboard/grades', icon: GraduationCap },
     { label: 'Duyurular', href: '/dashboard/announcements', icon: Bell },
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
@@ -38,6 +39,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Dersler', href: '/dashboard/subjects', icon: BookOpen },
     { label: 'Ders Programı', href: '/dashboard/timetable', icon: Calendar },
     { label: 'Yoklama', href: '/dashboard/attendance', icon: ClipboardCheck },
+    { label: 'Devamsızlık Raporu', href: '/dashboard/attendance-report', icon: BarChart3 },
     { label: 'Notlar', href: '/dashboard/grades', icon: GraduationCap },
     { label: 'Duyurular', href: '/dashboard/announcements', icon: Bell },
     { label: 'Etkinlikler', href: '/dashboard/events', icon: CalendarDays },
@@ -51,6 +53,7 @@ const menuItems: Record<string, { label: string; href: string; icon: any }[]> = 
     { label: 'Dersler', href: '/dashboard/subjects', icon: BookOpen },
     { label: 'Ders Programım', href: '/dashboard/timetable', icon: Calendar },
     { label: 'Yoklama', href: '/dashboard/attendance', icon: ClipboardCheck },
+    { label: 'Devamsızlık Raporu', href: '/dashboard/attendance-report', icon: BarChart3 },
     { label: 'Notlar', href: '/dashboard/grades', icon: GraduationCap },
     { label: 'Ödevler', href: '/dashboard/assignments', icon: FileText },
     { label: 'Duyurular', href: '/dashboard/announcements', icon: Bell },

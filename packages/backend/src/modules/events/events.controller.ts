@@ -36,23 +36,23 @@ export class EventsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Etkinlik detayı' })
-  async findById(@Param('id') id: string) {
-    return { success: true, data: await this.eventsService.findById(id) };
+  async findById(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.eventsService.findById(id, schoolId) };
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Etkinlik güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateEventDto) {
-    return { success: true, data: await this.eventsService.update(id, dto) };
+  async update(@Param('id') id: string, @Body() dto: UpdateEventDto, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.eventsService.update(id, dto, schoolId) };
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Etkinlik sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.eventsService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.eventsService.delete(id, schoolId) };
   }
 }

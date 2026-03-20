@@ -162,6 +162,7 @@ export default function AttendancePage() {
   // Load existing attendance when entry/date changes
   useEffect(() => {
     if (!selectedClass || !date) return;
+    if (!students || students.length === 0) return;
     api
       .get(`/attendance/class/${selectedClass}`, { params: { date } })
       .then(({ data }) => {
@@ -397,6 +398,9 @@ export default function AttendancePage() {
                               >
                                 {initials}
                               </div>
+                              {s.studentNumber && (
+                                <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{s.studentNumber}</span>
+                              )}
                               <span className="text-sm font-medium text-gray-900">{fullName}</span>
                             </div>
                           </td>

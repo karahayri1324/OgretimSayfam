@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateGradeDto, UpdateGradeDto, CreateGradeCategoryDto } from './dto/grades.dto';
+import { CreateGradeDto, UpdateGradeDto, CreateGradeCategoryDto, BulkGradeEntryDto } from './dto/grades.dto';
 
 @Injectable()
 export class GradesService {
@@ -21,16 +21,46 @@ export class GradesService {
     });
   }
 
-  async updateGrade(id: string, dto: UpdateGradeDto) {
+  async updateGrade(id: string, dto: UpdateGradeDto, teacherProfileId?: string) {
+    const grade = await this.prisma.grade.findUnique({ where: { id } });
+    if (!grade) throw new NotFoundException('Not bulunamadi');
+    if (teacherProfileId && grade.teacherProfileId !== teacherProfileId) {
+      throw new ForbiddenException('Bu notu duzenleme yetkiniz yok');
+    }
     return this.prisma.grade.update({
       where: { id },
       data: dto,
     });
   }
 
-  async deleteGrade(id: string) {
+  async deleteGrade(id: string, teacherProfileId?: string) {
+    const grade = await this.prisma.grade.findUnique({ where: { id } });
+    if (!grade) throw new NotFoundException('Not bulunamadi');
+    if (teacherProfileId && grade.teacherProfileId !== teacherProfileId) {
+      throw new ForbiddenException('Bu notu silme yetkiniz yok');
+    }
     await this.prisma.grade.delete({ where: { id } });
     return { message: 'Not silindi' };
+  }
+
+  async getParentGrades(parentProfileId: string) {
+    const parentStudents = await this.prisma.parentStudent.findMany({
+      where: { parentId: parentProfileId },
+      include: { student: { include: { user: { select: { firstName: true, lastName: true } } } } },
+    });
+
+    const results = [];
+    for (const ps of parentStudents) {
+      const grades = await this.getStudentGrades(ps.studentId);
+      results.push({
+        student: {
+          id: ps.student.id,
+          name: `${ps.student.user.firstName} ${ps.student.user.lastName}`,
+        },
+        grades,
+      });
+    }
+    return results;
   }
 
   async getStudentGrades(studentProfileId: string, termId?: string) {
@@ -80,6 +110,27 @@ export class GradesService {
     }
 
     return { average: totalWeight > 0 ? (weightedSum / totalWeight).toFixed(2) : null };
+  }
+
+  async bulkCreateGrades(dto: BulkGradeEntryDto, teacherProfileId: string) {
+    const results = [];
+    for (const entry of dto.grades) {
+      if (entry.score < 0 || entry.score > 100) continue;
+      const grade = await this.prisma.grade.create({
+        data: {
+          studentProfileId: entry.studentProfileId,
+          subjectId: dto.subjectId,
+          teacherProfileId,
+          termId: dto.termId,
+          categoryId: dto.categoryId,
+          score: entry.score,
+          description: dto.description,
+          date: new Date(dto.date),
+        },
+      });
+      results.push(grade);
+    }
+    return results;
   }
 
   // Grade Categories

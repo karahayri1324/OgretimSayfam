@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Kimlik Dogrulama')
 @Controller('auth')
@@ -78,7 +79,11 @@ export class AuthController {
     @CurrentUser('schoolId') schoolId: string,
     @CurrentUser('role') role: string,
   ) {
-    const result = await this.authService.register(dto, undefined, role === 'SUPER_ADMIN' ? undefined : schoolId);
+    const result = await this.authService.register(
+      dto,
+      dto.role || UserRole.SCHOOL_ADMIN,
+      role === 'SUPER_ADMIN' ? undefined : schoolId,
+    );
     return { success: true, data: result };
   }
 }

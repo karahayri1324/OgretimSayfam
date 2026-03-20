@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 import * as bcrypt from 'bcrypt';
@@ -25,7 +25,7 @@ export class UsersService {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, schoolId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -36,6 +36,7 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('Kullanıcı bulunamadı');
+    if (schoolId && user.schoolId && user.schoolId !== schoolId) throw new ForbiddenException('Bu kayda erisim yetkiniz yok');
     return user;
   }
 
@@ -44,15 +45,16 @@ export class UsersService {
     if (existing) throw new ConflictException('Bu e-posta zaten kullanılıyor');
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const { studentNumber, ...userData } = dto;
     const user = await this.prisma.user.create({
-      data: { ...dto, password: hashedPassword },
+      data: { ...userData, password: hashedPassword },
     });
 
     // Create profile based on role
     if (dto.role === UserRole.TEACHER) {
       await this.prisma.teacherProfile.create({ data: { userId: user.id } });
     } else if (dto.role === UserRole.STUDENT) {
-      await this.prisma.studentProfile.create({ data: { userId: user.id } });
+      await this.prisma.studentProfile.create({ data: { userId: user.id, ...(studentNumber ? { studentNumber } : {}) } });
     } else if (dto.role === UserRole.PARENT) {
       await this.prisma.parentProfile.create({ data: { userId: user.id } });
     }
@@ -60,14 +62,14 @@ export class UsersService {
     return this.findById(user.id);
   }
 
-  async update(id: string, dto: UpdateUserDto) {
-    await this.findById(id);
+  async update(id: string, dto: UpdateUserDto, schoolId?: string) {
+    await this.findById(id, schoolId);
     await this.prisma.user.update({ where: { id }, data: dto });
     return this.findById(id);
   }
 
-  async delete(id: string) {
-    await this.findById(id);
+  async delete(id: string, schoolId?: string) {
+    await this.findById(id, schoolId);
     await this.prisma.user.delete({ where: { id } });
     return { message: 'Kullanıcı silindi' };
   }

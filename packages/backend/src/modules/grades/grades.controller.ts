@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { GradesService } from './grades.service';
-import { CreateGradeDto, UpdateGradeDto, CreateGradeCategoryDto } from './dto/grades.dto';
+import { CreateGradeDto, UpdateGradeDto, CreateGradeCategoryDto, BulkGradeEntryDto } from './dto/grades.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -14,11 +14,21 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 export class GradesController {
   constructor(private gradesService: GradesService) {}
 
+  @Post('bulk')
+  @UseGuards(RolesGuard)
+  @Roles('TEACHER', 'SCHOOL_ADMIN')
+  @ApiOperation({ summary: 'Toplu not girisi' })
+  async bulkCreateGrades(@Body() dto: BulkGradeEntryDto, @CurrentUser() user: any) {
+    if (!user.teacherProfile) throw new BadRequestException('Ogretmen profili bulunamadi');
+    return { success: true, data: await this.gradesService.bulkCreateGrades(dto, user.teacherProfile.id) };
+  }
+
   @Post()
   @UseGuards(RolesGuard)
   @Roles('TEACHER')
   @ApiOperation({ summary: 'Not ekle' })
   async create(@CurrentUser() user: any, @Body() dto: CreateGradeDto) {
+    if (!user.teacherProfile) throw new BadRequestException('Ogretmen profili bulunamadi');
     return { success: true, data: await this.gradesService.createGrade(user.teacherProfile.id, dto) };
   }
 
@@ -26,16 +36,26 @@ export class GradesController {
   @UseGuards(RolesGuard)
   @Roles('TEACHER')
   @ApiOperation({ summary: 'Not güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateGradeDto) {
-    return { success: true, data: await this.gradesService.updateGrade(id, dto) };
+  async update(@Param('id') id: string, @Body() dto: UpdateGradeDto, @CurrentUser() user: any) {
+    const teacherProfileId = user.teacherProfile?.id;
+    return { success: true, data: await this.gradesService.updateGrade(id, dto, teacherProfileId) };
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('TEACHER', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Not sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.gradesService.deleteGrade(id) };
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    const teacherProfileId = user.role === 'SCHOOL_ADMIN' ? undefined : user.teacherProfile?.id;
+    return { success: true, data: await this.gradesService.deleteGrade(id, teacherProfileId) };
+  }
+
+  @Get('parent/:parentProfileId')
+  @UseGuards(RolesGuard)
+  @Roles('PARENT')
+  @ApiOperation({ summary: 'Velinin cocuklarinin notlari' })
+  async getParentGrades(@Param('parentProfileId') parentProfileId: string) {
+    return { success: true, data: await this.gradesService.getParentGrades(parentProfileId) };
   }
 
   @Get('student/:studentProfileId')

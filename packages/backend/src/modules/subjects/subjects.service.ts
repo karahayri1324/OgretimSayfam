@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSubjectDto, UpdateSubjectDto } from './dto/subjects.dto';
 
@@ -14,7 +14,7 @@ export class SubjectsService {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, schoolId?: string) {
     const subject = await this.prisma.subject.findUnique({
       where: { id },
       include: {
@@ -27,6 +27,7 @@ export class SubjectsService {
       },
     });
     if (!subject) throw new NotFoundException('Ders bulunamadı');
+    if (schoolId && subject.schoolId !== schoolId) throw new ForbiddenException('Bu kayda erisim yetkiniz yok');
     return subject;
   }
 
@@ -34,13 +35,13 @@ export class SubjectsService {
     return this.prisma.subject.create({ data: { ...dto, schoolId } });
   }
 
-  async update(id: string, dto: UpdateSubjectDto) {
-    await this.findById(id);
+  async update(id: string, dto: UpdateSubjectDto, schoolId?: string) {
+    await this.findById(id, schoolId);
     return this.prisma.subject.update({ where: { id }, data: dto });
   }
 
-  async delete(id: string) {
-    await this.findById(id);
+  async delete(id: string, schoolId?: string) {
+    await this.findById(id, schoolId);
     await this.prisma.subject.delete({ where: { id } });
     return { message: 'Ders silindi' };
   }

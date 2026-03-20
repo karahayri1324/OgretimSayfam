@@ -20,6 +20,8 @@ import {
   Eye,
   Pencil,
   Trash2,
+  Clock,
+  Users,
 } from 'lucide-react';
 import { formatRelativeDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -35,15 +37,25 @@ interface Announcement {
   category: string;
   isPinned: boolean;
   isRead?: boolean;
+  publishAt?: string | null;
   createdAt: string;
-  author?: { firstName: string; lastName: string; role: string };
+  authorId?: string;
+  author?: { id?: string; firstName: string; lastName: string; role: string };
   targetClasses?: { class: { id: string; name: string } }[];
+  targetStudents?: { studentProfileId: string }[];
   _count?: { reads: number };
 }
 
 interface ClassOption {
   id: string;
   name: string;
+}
+
+interface StudentOption {
+  id: string;
+  firstName: string;
+  lastName: string;
+  studentProfile?: { id: string };
 }
 
 const categoryConfig: Record<string, { label: string; color: string; bgClass: string; textClass: string; icon: React.ReactNode }> = {
@@ -86,6 +98,8 @@ const categoryConfig: Record<string, { label: string; color: string; bgClass: st
 
 const ALL_CATEGORIES = ['GENERAL', 'EXAM', 'EVENT', 'URGENT'] as const;
 
+type TargetTab = 'all' | 'classes' | 'students';
+
 // ---------------------------------------------------------------------------
 // Category Badge Component
 // ---------------------------------------------------------------------------
@@ -127,6 +141,7 @@ function AnnouncementCard({
 }) {
   const a = announcement;
   const isUnread = a.isRead === false;
+  const isScheduled = a.publishAt && new Date(a.publishAt) > new Date();
 
   const handleClick = () => {
     onToggle();
@@ -142,6 +157,7 @@ function AnnouncementCard({
         ${a.isPinned ? 'border-primary-200 bg-gradient-to-r from-primary-50/60 to-blue-50/40 shadow-md' : 'border-gray-100 bg-white shadow-sm hover:shadow-md'}
         ${isUnread ? 'border-l-4 border-l-primary-500' : ''}
         ${isExpanded ? 'ring-2 ring-primary-200' : ''}
+        ${isScheduled ? 'opacity-75' : ''}
       `}
       onClick={handleClick}
     >
@@ -172,14 +188,26 @@ function AnnouncementCard({
                   {a.title}
                 </h3>
                 <CategoryBadge category={a.category} />
+                {isScheduled && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                    <Clock className="w-3 h-3" />
+                    Zamanlanmis
+                  </span>
+                )}
               </div>
 
               {/* Meta info */}
-              <div className="flex items-center gap-3 text-xs text-gray-400">
+              <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                 <span className="font-medium text-gray-500">
                   {a.author?.firstName} {a.author?.lastName}
                 </span>
                 <span>{formatRelativeDate(a.createdAt)}</span>
+                {isScheduled && a.publishAt && (
+                  <span className="text-amber-600 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {new Date(a.publishAt).toLocaleString('tr-TR')}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Eye className="w-3 h-3" />
                   {a._count?.reads || 0}
@@ -187,6 +215,12 @@ function AnnouncementCard({
                 {a.targetClasses && a.targetClasses.length > 0 && (
                   <span className="text-primary-500">
                     {a.targetClasses.map((tc) => tc.class.name).join(', ')}
+                  </span>
+                )}
+                {a.targetStudents && a.targetStudents.length > 0 && (
+                  <span className="text-green-600 flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {a.targetStudents.length} ogrenci
                   </span>
                 )}
               </div>
@@ -260,9 +294,16 @@ function CreateAnnouncementModal({
     category: 'GENERAL',
     isPinned: false,
     targetClassIds: [] as string[],
+    targetStudentIds: [] as string[],
+    publishAt: '',
   });
   const [classes, setClasses] = useState<ClassOption[]>([]);
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [loadingStudents, setLoadingStudents] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [targetTab, setTargetTab] = useState<TargetTab>('all');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
 
   useEffect(() => {
     api
@@ -270,6 +311,18 @@ function CreateAnnouncementModal({
       .then(({ data }) => setClasses(data.data || []))
       .catch(() => {});
   }, []);
+
+  // Fetch students when student tab is selected
+  useEffect(() => {
+    if (targetTab === 'students' && students.length === 0) {
+      setLoadingStudents(true);
+      api
+        .get('/users?role=STUDENT')
+        .then(({ data }) => setStudents(data.data || []))
+        .catch(() => {})
+        .finally(() => setLoadingStudents(false));
+    }
+  }, [targetTab, students.length]);
 
   const toggleClass = (id: string) => {
     setForm((prev) => ({
@@ -280,14 +333,46 @@ function CreateAnnouncementModal({
     }));
   };
 
+  const toggleStudent = (profileId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      targetStudentIds: prev.targetStudentIds.includes(profileId)
+        ? prev.targetStudentIds.filter((s) => s !== profileId)
+        : [...prev.targetStudentIds, profileId],
+    }));
+  };
+
+  const filteredStudents = useMemo(() => {
+    if (!studentSearch.trim()) return students;
+    const q = studentSearch.toLowerCase();
+    return students.filter(
+      (s) =>
+        s.firstName.toLowerCase().includes(q) ||
+        s.lastName.toLowerCase().includes(q),
+    );
+  }, [students, studentSearch]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = {
-        ...form,
-        targetClassIds: form.targetClassIds.length > 0 ? form.targetClassIds : undefined,
+      const payload: any = {
+        title: form.title,
+        content: form.content,
+        category: form.category,
+        isPinned: form.isPinned,
       };
+
+      if (targetTab === 'classes' && form.targetClassIds.length > 0) {
+        payload.targetClassIds = form.targetClassIds;
+      }
+      if (targetTab === 'students' && form.targetStudentIds.length > 0) {
+        payload.targetStudentIds = form.targetStudentIds;
+      }
+      if (scheduleEnabled && form.publishAt) {
+        payload.publishAt = new Date(form.publishAt).toISOString();
+      }
+
       await api.post('/announcements', payload);
       toast.success('Duyuru basariyla olusturuldu');
       onCreated();
@@ -298,8 +383,6 @@ function CreateAnnouncementModal({
       setSubmitting(false);
     }
   };
-
-  const selectedCategory = categoryConfig[form.category] || categoryConfig.GENERAL;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -396,12 +479,40 @@ function CreateAnnouncementModal({
             </button>
           </div>
 
-          {/* Target classes */}
-          {classes.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hedef Siniflar <span className="text-gray-400 font-normal">(bos = herkese)</span>
-              </label>
+          {/* Target section with tabs */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hedef</label>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-3">
+              {([
+                { key: 'all' as TargetTab, label: 'Tum Okul' },
+                { key: 'classes' as TargetTab, label: 'Siniflar' },
+                { key: 'students' as TargetTab, label: 'Ogrenciler' },
+              ]).map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setTargetTab(tab.key);
+                    if (tab.key === 'all') {
+                      setForm((prev) => ({ ...prev, targetClassIds: [], targetStudentIds: [] }));
+                    } else if (tab.key === 'classes') {
+                      setForm((prev) => ({ ...prev, targetStudentIds: [] }));
+                    } else {
+                      setForm((prev) => ({ ...prev, targetClassIds: [] }));
+                    }
+                  }}
+                  className={`
+                    flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all
+                    ${targetTab === tab.key ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}
+                  `}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Classes selection */}
+            {targetTab === 'classes' && classes.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {classes.map((cls) => {
                   const isSelected = form.targetClassIds.includes(cls.id);
@@ -420,8 +531,106 @@ function CreateAnnouncementModal({
                   );
                 })}
               </div>
+            )}
+
+            {/* Students selection */}
+            {targetTab === 'students' && (
+              <div>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Ogrenci ara..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="input pl-10"
+                  />
+                </div>
+                {loadingStudents ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                    {filteredStudents.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-4">Ogrenci bulunamadi</p>
+                    ) : (
+                      filteredStudents.map((s) => {
+                        const profileId = s.studentProfile?.id;
+                        if (!profileId) return null;
+                        const isSelected = form.targetStudentIds.includes(profileId);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => toggleStudent(profileId)}
+                            className={`
+                              w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-all
+                              ${isSelected ? 'bg-primary-50 text-primary-700' : 'hover:bg-gray-50 text-gray-700'}
+                            `}
+                          >
+                            <span className={`
+                              w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0
+                              ${isSelected ? 'bg-primary-500 border-primary-500 text-white' : 'border-gray-300'}
+                            `}>
+                              {isSelected && (
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                              )}
+                            </span>
+                            <span className="font-medium">{s.firstName} {s.lastName}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+                {form.targetStudentIds.length > 0 && (
+                  <p className="text-xs text-primary-600 mt-2 font-medium">
+                    {form.targetStudentIds.length} ogrenci secildi
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Schedule toggle */}
+          <div>
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Zamanla</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setScheduleEnabled(!scheduleEnabled);
+                  if (scheduleEnabled) setForm((prev) => ({ ...prev, publishAt: '' }));
+                }}
+                className={`
+                  relative w-11 h-6 rounded-full transition-colors duration-200
+                  ${scheduleEnabled ? 'bg-primary-500' : 'bg-gray-300'}
+                `}
+              >
+                <span
+                  className={`
+                    absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200
+                    ${scheduleEnabled ? 'translate-x-5' : 'translate-x-0'}
+                  `}
+                />
+              </button>
             </div>
-          )}
+            {scheduleEnabled && (
+              <div className="mt-2">
+                <input
+                  type="datetime-local"
+                  className="input"
+                  value={form.publishAt}
+                  onChange={(e) => setForm({ ...form, publishAt: e.target.value })}
+                />
+                <p className="text-xs text-gray-400 mt-1">Duyuru belirtilen tarihte otomatik yayinlanir.</p>
+              </div>
+            )}
+          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
@@ -430,7 +639,7 @@ function CreateAnnouncementModal({
             </button>
             <button type="submit" disabled={submitting} className="btn-primary flex-1 flex items-center justify-center gap-2">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Megaphone className="w-4 h-4" />}
-              Yayinla
+              {scheduleEnabled && form.publishAt ? 'Zamanla' : 'Yayinla'}
             </button>
           </div>
         </form>
@@ -657,7 +866,14 @@ export default function AnnouncementsPage() {
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const canCreate = ['SCHOOL_ADMIN', 'TEACHER'].includes(user?.role || '');
-  const canManage = ['SCHOOL_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
+  const isAdmin = ['SCHOOL_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
+  const canManageAnnouncement = (announcement: Announcement): boolean => {
+    if (isAdmin) return true;
+    if (user?.role === 'TEACHER') {
+      return announcement.authorId === user?.id || announcement.author?.id === user?.id;
+    }
+    return false;
+  };
 
   const fetchAnnouncements = useCallback(async () => {
     try {
@@ -868,7 +1084,7 @@ export default function AnnouncementsPage() {
                     onMarkRead={markAsRead}
                     onEdit={(ann) => setEditingAnnouncement(ann)}
                     onDelete={(ann) => setDeletingAnnouncement(ann)}
-                    canManage={canManage}
+                    canManage={canManageAnnouncement(a)}
                   />
                 ))}
               </div>
@@ -894,7 +1110,7 @@ export default function AnnouncementsPage() {
                     onMarkRead={markAsRead}
                     onEdit={(ann) => setEditingAnnouncement(ann)}
                     onDelete={(ann) => setDeletingAnnouncement(ann)}
-                    canManage={canManage}
+                    canManage={canManageAnnouncement(a)}
                   />
                 ))}
               </div>

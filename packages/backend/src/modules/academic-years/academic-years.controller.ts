@@ -25,17 +25,42 @@ export class AcademicYearsController {
     return { success: true, data: await this.academicYearsService.findAll(schoolId) };
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Akademik yıl detayı' })
-  async findById(@Param('id') id: string) {
-    return { success: true, data: await this.academicYearsService.findById(id) };
-  }
-
   @Post()
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Akademik yıl oluştur' })
   async create(@CurrentUser('schoolId') schoolId: string, @Body() dto: CreateAcademicYearDto) {
     return { success: true, data: await this.academicYearsService.create(schoolId, dto) };
+  }
+
+  // --- Term routes (specific paths BEFORE parameterized :id routes) ---
+
+  @Put('terms/:termId')
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Dönem güncelle' })
+  async updateTerm(@Param('termId') termId: string, @Body() dto: UpdateTermDto) {
+    return { success: true, data: await this.academicYearsService.updateTerm(termId, dto) };
+  }
+
+  @Delete('terms/:termId')
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Dönem sil' })
+  async deleteTerm(@Param('termId') termId: string) {
+    return { success: true, data: await this.academicYearsService.deleteTerm(termId) };
+  }
+
+  @Put('terms/:termId/set-current')
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Aktif dönemi belirle' })
+  async setCurrentTerm(@Param('termId') termId: string) {
+    return { success: true, data: await this.academicYearsService.setCurrentTerm(termId) };
+  }
+
+  // --- Parameterized :id routes ---
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Akademik yıl detayı' })
+  async findById(@Param('id') id: string) {
+    return { success: true, data: await this.academicYearsService.findById(id) };
   }
 
   @Put(':id')
@@ -64,26 +89,5 @@ export class AcademicYearsController {
   @ApiOperation({ summary: 'Dönem oluştur' })
   async createTerm(@Param('id') id: string, @Body() dto: CreateTermDto) {
     return { success: true, data: await this.academicYearsService.createTerm(id, dto) };
-  }
-
-  @Put('terms/:termId')
-  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Dönem güncelle' })
-  async updateTerm(@Param('termId') termId: string, @Body() dto: UpdateTermDto) {
-    return { success: true, data: await this.academicYearsService.updateTerm(termId, dto) };
-  }
-
-  @Delete('terms/:termId')
-  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Dönem sil' })
-  async deleteTerm(@Param('termId') termId: string) {
-    return { success: true, data: await this.academicYearsService.deleteTerm(termId) };
-  }
-
-  @Put('terms/:termId/set-current')
-  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Aktif dönemi belirle' })
-  async setCurrentTerm(@Param('termId') termId: string) {
-    return { success: true, data: await this.academicYearsService.setCurrentTerm(termId) };
   }
 }

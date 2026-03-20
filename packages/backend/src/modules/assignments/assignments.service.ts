@@ -80,6 +80,31 @@ export class AssignmentsService {
     });
   }
 
+  async getParentAssignments(userId: string) {
+    const parent = await this.prisma.parentProfile.findFirst({
+      where: { userId },
+      include: { parentStudents: { include: { student: true } } },
+    });
+    if (!parent) return [];
+
+    const studentIds = parent.parentStudents.map(ps => ps.student.id);
+    const classIds = parent.parentStudents
+      .map(ps => ps.student.classId)
+      .filter(Boolean) as string[];
+
+    return this.prisma.assignment.findMany({
+      where: { classId: { in: classIds } },
+      include: {
+        subject: { select: { name: true } },
+        class: { select: { name: true } },
+        submissions: {
+          where: { studentProfileId: { in: studentIds } },
+        },
+      },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
   async getStudentAssignments(studentProfileId: string) {
     const student = await this.prisma.studentProfile.findUnique({
       where: { id: studentProfileId },

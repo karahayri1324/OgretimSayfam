@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ClassDiaryService } from './class-diary.service';
 import { CreateClassDiaryDto, UpdateClassDiaryDto } from './dto/class-diary.dto';
@@ -19,6 +19,7 @@ export class ClassDiaryController {
   @Roles('TEACHER')
   @ApiOperation({ summary: 'Sınıf defteri kaydı oluştur' })
   async create(@CurrentUser() user: any, @Body() dto: CreateClassDiaryDto) {
+    if (!user.teacherProfile) throw new BadRequestException('Ogretmen profili bulunamadi');
     return { success: true, data: await this.classDiaryService.create(user.teacherProfile.id, dto) };
   }
 

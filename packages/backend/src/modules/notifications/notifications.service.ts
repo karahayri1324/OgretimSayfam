@@ -10,12 +10,21 @@ export class NotificationsService {
     return this.prisma.notification.create({ data: dto });
   }
 
-  async getByUser(userId: string) {
-    return this.prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+  async getByUser(userId: string, page = 1, limit = 20, isRead?: boolean) {
+    const where: any = { userId };
+    if (isRead !== undefined) where.isRead = isRead;
+
+    const [data, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
 
   async getUnreadCount(userId: string) {

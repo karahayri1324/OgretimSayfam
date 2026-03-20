@@ -15,7 +15,7 @@ export default function UsersPage() {
   // Create modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({
-    email: '', password: '123456', firstName: '', lastName: '', phone: '', role: 'TEACHER',
+    email: '', password: '123456', firstName: '', lastName: '', phone: '', role: 'TEACHER', studentNumber: '',
   });
 
   // Edit modal
@@ -49,7 +49,8 @@ export default function UsersPage() {
     return users.filter((u) => {
       const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
       const email = (u.email || '').toLowerCase();
-      return fullName.includes(q) || email.includes(q);
+      const studentNum = (u.studentProfile?.studentNumber || '').toLowerCase();
+      return fullName.includes(q) || email.includes(q) || studentNum.includes(q);
     });
   }, [users, searchQuery]);
 
@@ -60,7 +61,7 @@ export default function UsersPage() {
       await api.post('/users', createForm);
       toast.success('Kullanıcı oluşturuldu');
       setShowCreateModal(false);
-      setCreateForm({ email: '', password: '123456', firstName: '', lastName: '', phone: '', role: 'TEACHER' });
+      setCreateForm({ email: '', password: '123456', firstName: '', lastName: '', phone: '', role: 'TEACHER', studentNumber: '' });
       fetchUsers();
     } catch (err: any) {
       toast.error(err.response?.data?.message?.[0] || 'Hata oluştu');
@@ -178,6 +179,9 @@ export default function UsersPage() {
                       <span className="text-xs font-medium text-primary-700">{u.firstName?.[0]}{u.lastName?.[0]}</span>
                     </div>
                     <span className="text-sm font-medium text-gray-900">{u.firstName} {u.lastName}</span>
+                    {u.studentProfile?.studentNumber && (
+                      <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded ml-2">{u.studentProfile.studentNumber}</span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-3 text-sm text-gray-600">{u.email}</td>
@@ -242,6 +246,9 @@ export default function UsersPage() {
                 <option value="PARENT">Veli</option>
                 <option value="SCHOOL_ADMIN">Okul Yöneticisi</option>
               </select>
+              {createForm.role === 'STUDENT' && (
+                <input className="input" placeholder="Okul Numarası (opsiyonel)" value={createForm.studentNumber} onChange={(e) => setCreateForm({ ...createForm, studentNumber: e.target.value })} />
+              )}
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">İptal</button>
                 <button type="submit" className="btn-primary flex-1">Oluştur</button>

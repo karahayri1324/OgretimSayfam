@@ -205,6 +205,7 @@ model Class {
   timetableEntries   TimetableEntry[]
   attendances        Attendance[]
   announcements      AnnouncementClass[]
+  eventClasses       EventClass[]
   classDiaryEntries  ClassDiaryEntry[]
   assignments        Assignment[]
 
@@ -490,11 +491,13 @@ model Announcement {
   category  AnnouncementCategory @default(GENERAL)
   isPinned  Boolean              @default(false)
   isActive  Boolean              @default(true)
+  publishAt DateTime?
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
 
-  targetClasses AnnouncementClass[]
-  reads         AnnouncementRead[]
+  targetClasses  AnnouncementClass[]
+  targetStudents AnnouncementStudent[]
+  reads          AnnouncementRead[]
 
   @@index([schoolId])
   @@map("announcements")
@@ -509,6 +512,16 @@ model AnnouncementClass {
 
   @@unique([announcementId, classId])
   @@map("announcement_classes")
+}
+
+model AnnouncementStudent {
+  id               String       @id @default(uuid())
+  announcementId   String
+  announcement     Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  studentProfileId String
+
+  @@unique([announcementId, studentProfileId])
+  @@map("announcement_students")
 }
 
 model AnnouncementRead {
@@ -569,11 +582,14 @@ model Event {
   startDate   DateTime
   endDate     DateTime?
   location    String?
+  startTime   String?
+  endTime     String?
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  participants EventParticipant[]
+  participants  EventParticipant[]
+  targetClasses EventClass[]
 
   @@index([schoolId])
   @@map("events")
@@ -588,6 +604,17 @@ model EventParticipant {
 
   @@unique([eventId, userId])
   @@map("event_participants")
+}
+
+model EventClass {
+  id      String @id @default(uuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, classId])
+  @@map("event_classes")
 }
 
 // ==================== BİLDİRİMLER ====================

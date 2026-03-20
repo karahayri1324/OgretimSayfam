@@ -22,8 +22,8 @@ export class ClassesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Sınıf detayı' })
-  async findById(@Param('id') id: string) {
-    return { success: true, data: await this.classesService.findById(id) };
+  async findById(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.classesService.findById(id, schoolId) };
   }
 
   @Post()
@@ -36,15 +36,15 @@ export class ClassesController {
   @Put(':id')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Sınıf güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateClassDto) {
-    return { success: true, data: await this.classesService.update(id, dto) };
+  async update(@Param('id') id: string, @Body() dto: UpdateClassDto, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.classesService.update(id, dto, schoolId) };
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Sınıf sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.classesService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.classesService.delete(id, schoolId) };
   }
 
   @Post(':id/students/:studentProfileId')

@@ -22,8 +22,8 @@ export class SubjectsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Ders detayı' })
-  async findById(@Param('id') id: string) {
-    return { success: true, data: await this.subjectsService.findById(id) };
+  async findById(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.subjectsService.findById(id, schoolId) };
   }
 
   @Post()
@@ -36,14 +36,14 @@ export class SubjectsController {
   @Put(':id')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ders güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateSubjectDto) {
-    return { success: true, data: await this.subjectsService.update(id, dto) };
+  async update(@Param('id') id: string, @Body() dto: UpdateSubjectDto, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.subjectsService.update(id, dto, schoolId) };
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ders sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.subjectsService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.subjectsService.delete(id, schoolId) };
   }
 }

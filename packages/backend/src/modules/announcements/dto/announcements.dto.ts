@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsEnum, IsArray, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { AnnouncementCategory } from '@prisma/client';
 
@@ -8,6 +8,8 @@ export class CreateAnnouncementDto {
   @ApiProperty({ enum: AnnouncementCategory, required: false }) @IsOptional() @IsEnum(AnnouncementCategory) category?: AnnouncementCategory;
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isPinned?: boolean;
   @ApiProperty({ required: false, type: [String] }) @IsOptional() @IsArray() targetClassIds?: string[];
+  @ApiProperty({ required: false, type: [String] }) @IsOptional() @IsArray() targetStudentIds?: string[];
+  @ApiProperty({ required: false }) @IsOptional() @IsDateString() publishAt?: string;
 }
 
 export class UpdateAnnouncementDto {

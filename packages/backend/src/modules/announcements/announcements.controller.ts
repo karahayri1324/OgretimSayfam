@@ -24,30 +24,30 @@ export class AnnouncementsController {
 
   @Get()
   @ApiOperation({ summary: 'Duyuruları listele' })
-  async findAll(@CurrentUser('id') userId: string, @CurrentUser('schoolId') schoolId: string) {
-    return { success: true, data: await this.announcementsService.findAll(schoolId, userId) };
+  async findAll(@CurrentUser('id') userId: string, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') userRole: string) {
+    return { success: true, data: await this.announcementsService.findAll(schoolId, userId, userRole) };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Duyuru detayı' })
-  async findById(@Param('id') id: string) {
-    return { success: true, data: await this.announcementsService.findById(id) };
+  async findById(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.announcementsService.findById(id, schoolId) };
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN', 'TEACHER')
   @ApiOperation({ summary: 'Duyuru güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateAnnouncementDto) {
-    return { success: true, data: await this.announcementsService.update(id, dto) };
+  async update(@Param('id') id: string, @Body() dto: UpdateAnnouncementDto, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.announcementsService.update(id, dto, schoolId) };
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Duyuru sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.announcementsService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.announcementsService.delete(id, schoolId) };
   }
 
   @Post(':id/read')

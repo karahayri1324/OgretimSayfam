@@ -25,8 +25,9 @@ export class UsersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Kullanıcı detayı' })
-  async findById(@Param('id') id: string) {
-    return { success: true, data: await this.usersService.findById(id) };
+  async findById(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') role: string) {
+    const sid = role === 'SUPER_ADMIN' ? undefined : schoolId;
+    return { success: true, data: await this.usersService.findById(id, sid) };
   }
 
   @Post()
@@ -40,14 +41,16 @@ export class UsersController {
   @Put(':id')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Kullanıcı güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return { success: true, data: await this.usersService.update(id, dto) };
+  async update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') role: string) {
+    const sid = role === 'SUPER_ADMIN' ? undefined : schoolId;
+    return { success: true, data: await this.usersService.update(id, dto, sid) };
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Kullanıcı sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.usersService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') role: string) {
+    const sid = role === 'SUPER_ADMIN' ? undefined : schoolId;
+    return { success: true, data: await this.usersService.delete(id, sid) };
   }
 }
