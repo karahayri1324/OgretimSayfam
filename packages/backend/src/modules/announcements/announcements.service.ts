@@ -118,10 +118,11 @@ export class AnnouncementsService {
 
   async update(id: string, dto: UpdateAnnouncementDto, schoolId?: string) {
     await this.findById(id, schoolId);
-    return this.prisma.announcement.update({
+    await this.prisma.announcement.update({
       where: { id },
       data: dto,
     });
+    return this.findById(id);
   }
 
   async delete(id: string, schoolId?: string) {

@@ -182,15 +182,18 @@ export class AuthService {
       throw new BadRequestException('Geçersiz veya süresi dolmuş token');
     }
 
+    // Delete token immediately to prevent race condition (double-use)
+    const userId = stored.userId;
+    this.resetTokens.delete(token);
+
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
-      where: { id: stored.userId },
+      where: { id: userId },
       data: { password: hashed },
     });
 
-    // Invalidate the used token and all refresh tokens
-    this.resetTokens.delete(token);
-    await this.prisma.refreshToken.deleteMany({ where: { userId: stored.userId } });
+    // Invalidate all refresh tokens
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
 
     return { message: 'Şifre başarıyla sıfırlandı' };
   }

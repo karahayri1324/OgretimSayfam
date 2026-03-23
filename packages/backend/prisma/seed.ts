@@ -451,10 +451,10 @@ async function main() {
     { slotNumber: 2, startTime: '09:20', endTime: '10:00' },
     { slotNumber: 3, startTime: '10:10', endTime: '10:50' },
     { slotNumber: 4, startTime: '11:00', endTime: '11:40' },
-    { slotNumber: 5, startTime: '12:30', endTime: '13:10' },
-    { slotNumber: 6, startTime: '13:20', endTime: '14:00' },
-    { slotNumber: 7, startTime: '14:10', endTime: '14:50' },
-    { slotNumber: 8, startTime: '15:00', endTime: '15:40' },
+    { slotNumber: 5, startTime: '11:50', endTime: '12:30' },
+    { slotNumber: 6, startTime: '13:10', endTime: '13:50' },
+    { slotNumber: 7, startTime: '14:00', endTime: '14:40' },
+    { slotNumber: 8, startTime: '14:50', endTime: '15:30' },
   ];
 
   const timeSlots: Record<number, any> = {};

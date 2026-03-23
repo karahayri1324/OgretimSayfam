@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
@@ -39,9 +39,12 @@ export class UsersController {
   }
 
   @Put(':id')
-  @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Kullanıcı güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') role: string) {
+  async update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') role: string, @CurrentUser('id') currentUserId: string) {
+    // Allow users to update their own profile, admins can update any user
+    if (id !== currentUserId && role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN') {
+      throw new ForbiddenException('Sadece kendi profilinizi güncelleyebilirsiniz');
+    }
     const sid = role === 'SUPER_ADMIN' ? undefined : schoolId;
     return { success: true, data: await this.usersService.update(id, dto, sid) };
   }

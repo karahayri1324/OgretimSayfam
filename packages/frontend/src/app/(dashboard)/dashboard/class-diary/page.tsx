@@ -277,6 +277,9 @@ function AddDiaryModal({ classId, date, onClose, onSaved }: {
       const dayEntries = (data.data || []).filter((e: any) => e.dayOfWeek === dayOfWeek);
       setTimetableEntries(dayEntries);
       if (dayEntries.length > 0) setSelectedEntryId(dayEntries[0].id);
+    }).catch(() => {
+      toast.error('Ders saatleri yüklenemedi');
+      setTimetableEntries([]);
     });
   }, [classId, date]);
 
@@ -284,7 +287,8 @@ function AddDiaryModal({ classId, date, onClose, onSaved }: {
     if (!selectedEntryId || !topic) { toast.error('Ders ve konu gerekli'); return; }
     setSaving(true);
     try {
-      await api.post('/class-diary', { timetableEntryId: selectedEntryId, classId, date, topic, description: description || undefined, homework: homework || undefined });
+      const selectedEntry = timetableEntries.find((e: any) => e.id === selectedEntryId);
+      await api.post('/class-diary', { timetableEntryId: selectedEntryId, classId, subjectId: selectedEntry?.subjectId, date, topic, description: description || undefined });
       toast.success('Kayıt eklendi');
       onSaved();
     } catch (err: any) {

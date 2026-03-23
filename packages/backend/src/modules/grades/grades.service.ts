@@ -30,6 +30,11 @@ export class GradesService {
     return this.prisma.grade.update({
       where: { id },
       data: dto,
+      include: {
+        studentProfile: { include: { user: { select: { firstName: true, lastName: true } } } },
+        subject: { select: { name: true } },
+        category: { select: { name: true, code: true } },
+      },
     });
   }
 

@@ -11,6 +11,7 @@ export default function SubjectsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ name: '', code: '', color: '#3b82f6' });
 
   const fetchSubjects = async () => {
@@ -61,6 +62,7 @@ export default function SubjectsPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
       await api.delete(`/subjects/${deleteTarget.id}`);
       toast.success('Ders silindi');
@@ -68,6 +70,8 @@ export default function SubjectsPage() {
       fetchSubjects();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Silme işlemi başarısız');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -154,7 +158,7 @@ export default function SubjectsPage() {
             </p>
             <div className="flex gap-2">
               <button onClick={() => setDeleteTarget(null)} className="btn-secondary flex-1">İptal</button>
-              <button onClick={handleDelete} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-medium">Sil</button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50">{deleting ? 'Siliniyor...' : 'Sil'}</button>
             </div>
           </div>
         </div>

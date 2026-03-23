@@ -254,7 +254,7 @@ function TimetableView() {
             >
               <option value="">Öğretmen seçin</option>
               {teachers.map((t: any) => (
-                <option key={t.teacherProfile?.id || t.id} value={t.teacherProfile?.id || ''}>
+                <option key={t.teacherProfile?.id || t.id} value={t.teacherProfile?.id || t.id}>
                   {t.firstName} {t.lastName}
                 </option>
               ))}

@@ -62,6 +62,9 @@ export class SubstitutionsService {
 
   async getAvailableTeachers(schoolId: string, date: string, timeSlotId: string) {
     const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      throw new NotFoundException('Geçersiz tarih formatı');
+    }
     const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const dayOfWeek = dayNames[dateObj.getDay()] as DayOfWeek;
 

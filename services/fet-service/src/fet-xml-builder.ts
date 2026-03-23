@@ -337,20 +337,30 @@ function generateSpaceConstraints(constraints: Constraints | undefined, activiti
   }
 
   // Also add preferred rooms from activities that have a room specified
+  // Must use the same grouping logic as generateActivitiesXml to match activity IDs
   if (activities) {
-    let actId = 1;
+    const grouped = new Map<string, Activity[]>();
     for (const act of activities) {
-      if (act.roomName) {
-        parts.push(`<ConstraintActivityPreferredRoom>
+      const key = `${act.teacherId}_${act.subjectId}_${act.classId}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(act);
+    }
+
+    let actId = 1;
+    for (const [, group] of grouped) {
+      for (const a of group) {
+        if (a.roomName) {
+          parts.push(`<ConstraintActivityPreferredRoom>
 <Weight_Percentage>90</Weight_Percentage>
 <Activity_Id>${actId}</Activity_Id>
-<Room>${escapeXml(act.roomName)}</Room>
+<Room>${escapeXml(a.roomName)}</Room>
 <Permanently_Locked>false</Permanently_Locked>
 <Active>true</Active>
 <Comments></Comments>
 </ConstraintActivityPreferredRoom>`);
+        }
+        actId++;
       }
-      actId++;
     }
   }
 
