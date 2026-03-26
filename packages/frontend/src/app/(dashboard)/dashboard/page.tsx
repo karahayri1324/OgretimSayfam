@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import api from '@/lib/api';
+import toast from 'react-hot-toast';
 import { formatDate, dayLabels } from '@/lib/utils';
 import {
   Users,
@@ -486,6 +487,7 @@ function StudentDashboard() {
         setData(res.data);
       } catch (err) {
         console.error('Dashboard yuklenemedi:', err);
+        toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
       }
@@ -695,6 +697,7 @@ function TeacherDashboard() {
         setData(res.data);
       } catch (err) {
         console.error('Dashboard yuklenemedi:', err);
+        toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
       }
@@ -822,6 +825,7 @@ function ParentDashboard() {
         setData(res.data);
       } catch (err) {
         console.error('Dashboard yuklenemedi:', err);
+        toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
       }
@@ -1107,6 +1111,7 @@ function AdminDashboard() {
         setData(res.data);
       } catch (err) {
         console.error('Dashboard yuklenemedi:', err);
+        toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
       }

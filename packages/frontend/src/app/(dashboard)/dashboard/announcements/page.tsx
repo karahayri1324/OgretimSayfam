@@ -309,7 +309,7 @@ function CreateAnnouncementModal({
     api
       .get('/classes')
       .then(({ data }) => setClasses(data.data || []))
-      .catch(() => {});
+      .catch(() => { console.warn('Siniflar yuklenemedi'); });
   }, []);
 
   // Fetch students when student tab is selected
@@ -319,7 +319,7 @@ function CreateAnnouncementModal({
       api
         .get('/users?role=STUDENT')
         .then(({ data }) => setStudents(data.data || []))
-        .catch(() => {})
+        .catch(() => { console.warn('Ogrenciler yuklenemedi'); })
         .finally(() => setLoadingStudents(false));
     }
   }, [targetTab, students.length]);

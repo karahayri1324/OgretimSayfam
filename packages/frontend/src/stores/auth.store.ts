@@ -57,7 +57,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     // Decode JWT to get user info
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        localStorage.removeItem('accessToken');
+        set({ isLoading: false, isAuthenticated: false });
+        return;
+      }
+      const payload = JSON.parse(atob(parts[1]));
       // Check if expired
       if (payload.exp * 1000 < Date.now()) {
         localStorage.removeItem('accessToken');

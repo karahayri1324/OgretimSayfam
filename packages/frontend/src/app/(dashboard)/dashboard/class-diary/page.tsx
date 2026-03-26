@@ -30,7 +30,7 @@ export default function ClassDiaryPage() {
           setClasses(data.data || []);
           if (data.data?.length > 0) setSelectedClassId(data.data[0].id);
         }
-      } catch {} finally { setLoading(false); }
+      } catch { toast.error('Veriler yuklenemedi'); } finally { setLoading(false); }
     };
     if (user) init();
   }, [user]);

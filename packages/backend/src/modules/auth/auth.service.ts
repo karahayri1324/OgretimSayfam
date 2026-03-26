@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -8,7 +8,8 @@ import { LoginDto, RegisterDto, ChangePasswordDto } from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
   // In-memory store for password reset tokens
   // TODO: Production ortamında Redis veya DB tablosu kullanılmalı
   private resetTokens = new Map<string, { userId: string; expiresAt: Date }>();
@@ -18,6 +19,13 @@ export class AuthService {
     private jwt: JwtService,
     private config: ConfigService,
   ) {}
+
+  onModuleInit() {
+    const refreshSecret = this.config.get('JWT_REFRESH_SECRET');
+    if (!refreshSecret) {
+      this.logger.warn('JWT_REFRESH_SECRET is not configured! Falling back to JWT_SECRET for refresh tokens.');
+    }
+  }
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
@@ -167,8 +175,11 @@ export class AuthService {
     });
 
     // TODO: Production ortamında e-posta ile sıfırlama bağlantısı gönderilmeli
-    // For now, log the token (admin can look it up)
-    console.log(`Password reset token for ${email}: ${token}`);
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.debug(`Password reset token generated for ${email}: ${token}`);
+    } else {
+      this.logger.log(`Password reset token generated for ${email}`);
+    }
 
     return { message: 'Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi' };
   }
@@ -208,8 +219,9 @@ export class AuthService {
 
     const accessToken = this.jwt.sign(payload);
 
+    const refreshSecret = this.config.get('JWT_REFRESH_SECRET') || this.config.get('JWT_SECRET');
     const refreshToken = this.jwt.sign(payload, {
-      secret: this.config.get('JWT_REFRESH_SECRET'),
+      secret: refreshSecret,
       expiresIn: '7d',
     });
 

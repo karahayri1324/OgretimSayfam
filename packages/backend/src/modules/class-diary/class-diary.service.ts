@@ -18,6 +18,8 @@ export class ClassDiaryService {
   }
 
   async update(id: string, dto: UpdateClassDiaryDto) {
+    const entry = await this.prisma.classDiaryEntry.findUnique({ where: { id } });
+    if (!entry) throw new NotFoundException('Sınıf defteri kaydı bulunamadı');
     return this.prisma.classDiaryEntry.update({ where: { id }, data: dto });
   }
 
@@ -55,6 +57,8 @@ export class ClassDiaryService {
   }
 
   async approve(id: string) {
+    const entry = await this.prisma.classDiaryEntry.findUnique({ where: { id } });
+    if (!entry) throw new NotFoundException('Sınıf defteri kaydı bulunamadı');
     return this.prisma.classDiaryEntry.update({
       where: { id },
       data: { isApproved: true },

@@ -31,15 +31,17 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const { data } = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/auth/refresh`,
-            { refreshToken },
-          );
-          localStorage.setItem('accessToken', data.data.accessToken);
-          localStorage.setItem('refreshToken', data.data.refreshToken);
-          originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`;
-          return api(originalRequest);
-        } catch {
+          const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+          const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
+          if (data?.data?.accessToken && data?.data?.refreshToken) {
+            localStorage.setItem('accessToken', data.data.accessToken);
+            localStorage.setItem('refreshToken', data.data.refreshToken);
+            originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`;
+            return api(originalRequest);
+          }
+          throw new Error('Invalid refresh response');
+        } catch (refreshError) {
+          console.warn('Token refresh failed:', refreshError instanceof Error ? refreshError.message : 'Unknown error');
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('schoolSlug');

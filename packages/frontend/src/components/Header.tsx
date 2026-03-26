@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { Bell, Clock, LogOut, User, ChevronDown, School, Check } from 'lucide-react';
 import { roleLabels } from '@/lib/utils';
@@ -43,6 +44,7 @@ function notificationTypeIcon(type: string): string {
 
 export default function Header() {
   const { user, logout } = useAuthStore();
+  const router = useRouter();
 
   // Clock state
   const [currentTime, setCurrentTime] = useState('');
@@ -75,11 +77,11 @@ export default function Header() {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const { data } = await api.get('/notifications/unread-count');
-      if (data.success) {
+      if (data.success && typeof data.data?.count === 'number') {
         setUnreadCount(data.data.count);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.warn('Bildirim sayisi alinamadi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
     }
   }, []);
 
@@ -97,8 +99,8 @@ export default function Header() {
       if (data.success) {
         setNotifications(data.data.slice(0, 5));
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.warn('Bildirimler alinamadi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
     } finally {
       setNotifLoading(false);
     }
@@ -119,8 +121,8 @@ export default function Header() {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.warn('Bildirim okundu olarak isaretlenemedi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
     }
   };
 
@@ -132,7 +134,7 @@ export default function Header() {
   const handleLogout = async () => {
     setUserMenuOpen(false);
     await logout();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   // Close dropdowns when clicking outside
@@ -149,7 +151,7 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const schoolName = user?.school?.name || (typeof window !== 'undefined' ? localStorage.getItem('schoolName') : null);
+  const schoolName = user?.school?.name;
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-6">

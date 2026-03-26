@@ -93,12 +93,11 @@ export class TimetableService {
   }
 
   async bulkCreate(dto: BulkCreateTimetableDto) {
-    const results = [];
-    for (const entry of dto.entries) {
-      const created = await this.prisma.timetableEntry.create({ data: entry });
-      results.push(created);
-    }
-    return results;
+    return this.prisma.$transaction(
+      dto.entries.map(entry =>
+        this.prisma.timetableEntry.create({ data: entry }),
+      ),
+    );
   }
 
   async deleteEntry(id: string) {

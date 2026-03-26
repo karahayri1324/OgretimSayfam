@@ -170,7 +170,7 @@ function AddSubstitutionModal({ date, onClose, onSaved }: {
     if (entry?.timeSlotId) {
       api.get(`/substitutions/available-teachers?date=${date}&timeSlotId=${entry.timeSlotId}`)
         .then(({ data }) => setAvailableTeachers(data.data || []))
-        .catch(() => {});
+        .catch(() => { console.warn('Uygun ogretmenler yuklenemedi'); });
     }
   }, [selectedEntryId, date, timetableEntries]);
 

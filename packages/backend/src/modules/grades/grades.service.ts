@@ -118,24 +118,28 @@ export class GradesService {
   }
 
   async bulkCreateGrades(dto: BulkGradeEntryDto, teacherProfileId: string) {
-    const results = [];
-    for (const entry of dto.grades) {
-      if (entry.score < 0 || entry.score > 100) continue;
-      const grade = await this.prisma.grade.create({
-        data: {
-          studentProfileId: entry.studentProfileId,
-          subjectId: dto.subjectId,
-          teacherProfileId,
-          termId: dto.termId,
-          categoryId: dto.categoryId,
-          score: entry.score,
-          description: dto.description,
-          date: new Date(dto.date),
-        },
-      });
-      results.push(grade);
+    const validEntries = dto.grades.filter(entry => entry.score >= 0 && entry.score <= 100);
+    if (validEntries.length === 0) {
+      return { created: [], skipped: dto.grades.length };
     }
-    return results;
+
+    const results = await this.prisma.$transaction(
+      validEntries.map(entry =>
+        this.prisma.grade.create({
+          data: {
+            studentProfileId: entry.studentProfileId,
+            subjectId: dto.subjectId,
+            teacherProfileId,
+            termId: dto.termId,
+            categoryId: dto.categoryId,
+            score: entry.score,
+            description: dto.description,
+            date: new Date(dto.date),
+          },
+        }),
+      ),
+    );
+    return { created: results, skipped: dto.grades.length - validEntries.length };
   }
 
   // Grade Categories

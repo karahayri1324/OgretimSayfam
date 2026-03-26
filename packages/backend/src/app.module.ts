@@ -25,7 +25,18 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: (config: Record<string, unknown>) => {
+        const required = ['DATABASE_URL', 'JWT_SECRET'];
+        for (const key of required) {
+          if (!config[key]) {
+            throw new Error(`Missing required environment variable: ${key}`);
+          }
+        }
+        return config;
+      },
+    }),
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 60,

@@ -133,7 +133,7 @@ export default function ProfilePage() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!passwordForm.newPassword || !passwordForm.currentPassword) {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       toast.error('Tüm alanları doldurun');
       return;
     }

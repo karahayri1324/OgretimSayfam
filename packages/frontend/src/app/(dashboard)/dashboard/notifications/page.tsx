@@ -142,11 +142,15 @@ export default function NotificationsPage() {
   useEffect(() => {
     setPage(1);
     fetchNotifications(1);
-  }, [filter, fetchNotifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   useEffect(() => {
-    fetchNotifications(page);
-  }, [page, fetchNotifications]);
+    if (page > 1) {
+      fetchNotifications(page);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   // Mark single as read
   const markAsRead = async (id: string) => {

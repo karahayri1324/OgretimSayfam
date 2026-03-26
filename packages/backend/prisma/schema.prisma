@@ -304,7 +304,7 @@ model TimetableEntry {
   timeSlotId  String
   timeSlot    TimeSlot  @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
   classroomId String?
-  classroom   Classroom? @relation(fields: [classroomId], references: [id])
+  classroom   Classroom? @relation(fields: [classroomId], references: [id], onDelete: SetNull)
   dayOfWeek   DayOfWeek
   teacherId   String?   // Öğretmen ID (TeacherProfile)
 
@@ -316,6 +316,8 @@ model TimetableEntry {
   @@unique([classId, dayOfWeek, timeSlotId])
   @@unique([teacherId, dayOfWeek, timeSlotId])
   @@index([classId])
+  @@index([teacherId])
+  @@index([subjectId])
   @@map("timetable_entries")
 }
 

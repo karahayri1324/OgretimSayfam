@@ -1,8 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +21,9 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix('api');
+
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Validation
   app.useGlobalPipes(
@@ -44,9 +48,10 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`OgretimSayfam API running: http://localhost:${port}`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`OgretimSayfam API running: http://localhost:${port}`);
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`Swagger Docs: http://localhost:${port}/api/docs`);
+    logger.log(`Swagger Docs: http://localhost:${port}/api/docs`);
   }
 }
 bootstrap();

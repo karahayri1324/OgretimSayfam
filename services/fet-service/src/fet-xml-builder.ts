@@ -301,6 +301,19 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
+  // Class max gaps per day
+  if (constraints.classMaxGapsDaily) {
+    for (const c of constraints.classMaxGapsDaily) {
+      parts.push(`<ConstraintStudentsSetMaxGapsPerDay>
+<Weight_Percentage>100</Weight_Percentage>
+<Students>${escapeXml(c.className)}</Students>
+<Max_Gaps>${c.maxGaps}</Max_Gaps>
+<Active>true</Active>
+<Comments></Comments>
+</ConstraintStudentsSetMaxGapsPerDay>`);
+    }
+  }
+
   // Activity preferred times
   if (constraints.activityPreferredTime) {
     for (const c of constraints.activityPreferredTime) {

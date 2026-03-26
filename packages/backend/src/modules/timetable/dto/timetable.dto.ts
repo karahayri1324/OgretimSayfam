@@ -1,12 +1,12 @@
-import { IsString, IsInt, IsOptional, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsEnum, IsArray, ValidateNested, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { DayOfWeek } from '@prisma/client';
 
 export class CreateTimeSlotDto {
   @ApiProperty() @IsInt() slotNumber: number;
-  @ApiProperty({ example: '08:30' }) @IsString() startTime: string;
-  @ApiProperty({ example: '09:10' }) @IsString() endTime: string;
+  @ApiProperty({ example: '08:30' }) @IsString() @Matches(/^\d{2}:\d{2}$/, { message: 'Başlangıç saati HH:MM formatında olmalıdır' }) startTime: string;
+  @ApiProperty({ example: '09:10' }) @IsString() @Matches(/^\d{2}:\d{2}$/, { message: 'Bitiş saati HH:MM formatında olmalıdır' }) endTime: string;
 }
 
 export class CreateTimetableEntryDto {

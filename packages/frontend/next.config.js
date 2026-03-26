@@ -21,8 +21,9 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' http://localhost:3001 https://*.ogretimsayfam.com; frame-ancestors 'none';",
+            value: process.env.NODE_ENV === 'production'
+              ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.ogretimsayfam.com; frame-ancestors 'none';"
+              : "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' http://localhost:3001 https://*.ogretimsayfam.com; frame-ancestors 'none';",
           },
           {
             key: 'Permissions-Policy',

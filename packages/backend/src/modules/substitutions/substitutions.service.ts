@@ -25,6 +25,8 @@ export class SubstitutionsService {
   }
 
   async update(id: string, dto: UpdateSubstitutionDto) {
+    const existing = await this.prisma.substitution.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Vekil atama bulunamadı');
     return this.prisma.substitution.update({
       where: { id },
       data: dto,
@@ -39,6 +41,8 @@ export class SubstitutionsService {
   }
 
   async delete(id: string) {
+    const existing = await this.prisma.substitution.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Vekil atama bulunamadı');
     await this.prisma.substitution.delete({ where: { id } });
     return { message: 'Vekil atama silindi' };
   }

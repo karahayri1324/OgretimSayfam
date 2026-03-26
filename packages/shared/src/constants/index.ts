@@ -12,10 +12,11 @@ export const DEFAULT_TIME_SLOTS = [
 
 // Varsayılan not ağırlıkları
 export const DEFAULT_GRADE_WEIGHTS = {
-  EXAM: 0.5,         // %50
-  ORAL: 0.2,         // %20
-  HOMEWORK: 0.15,    // %15
-  PERFORMANCE: 0.15, // %15
+  EXAM: 0.40,         // %40
+  ORAL: 0.15,         // %15
+  HOMEWORK: 0.15,     // %15
+  PERFORMANCE: 0.15,  // %15
+  PROJECT: 0.15,      // %15
 };
 
 // Sayfalama varsayılanları

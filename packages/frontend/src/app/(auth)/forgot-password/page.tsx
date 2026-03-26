@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
 type Step = 'email' | 'success' | 'reset';
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
@@ -49,7 +51,7 @@ export default function ForgotPasswordPage() {
       toast.success('Sifre basariyla sifirlandi!');
       // Redirect to login after short delay
       setTimeout(() => {
-        window.location.href = '/login';
+        router.push('/login');
       }, 1500);
     } catch (err: any) {
       const msg = err.response?.data?.message;

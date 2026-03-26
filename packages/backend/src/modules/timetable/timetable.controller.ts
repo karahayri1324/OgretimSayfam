@@ -115,6 +115,8 @@ export class TimetableController {
   // ==================== FET ENTEGRASYONU ====================
 
   @Get('fet/health')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'FET servis durumu' })
   async fetHealth() {
     const health = await this.fetIntegrationService.checkHealth();
@@ -155,6 +157,8 @@ export class TimetableController {
   }
 
   @Get('fet/status/:jobId')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'FET iş durumunu kontrol et' })
   async fetJobStatus(@Param('jobId') jobId: string) {
     const result = await this.fetIntegrationService.checkJobStatus(jobId);
@@ -162,6 +166,8 @@ export class TimetableController {
   }
 
   @Get('fet/result/:jobId')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'FET iş sonucunu getir' })
   async fetJobResult(@Param('jobId') jobId: string) {
     const result = await this.fetIntegrationService.getJobResult(jobId);

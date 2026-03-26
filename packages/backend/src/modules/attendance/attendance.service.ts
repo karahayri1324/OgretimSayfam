@@ -7,29 +7,28 @@ export class AttendanceService {
   constructor(private prisma: PrismaService) {}
 
   async takeAttendance(dto: TakeAttendanceDto) {
-    const results = [];
-    for (const student of dto.students) {
-      const record = await this.prisma.attendance.upsert({
-        where: {
-          studentProfileId_timetableEntryId_date: {
+    return this.prisma.$transaction(
+      dto.students.map(student =>
+        this.prisma.attendance.upsert({
+          where: {
+            studentProfileId_timetableEntryId_date: {
+              studentProfileId: student.studentProfileId,
+              timetableEntryId: dto.timetableEntryId,
+              date: new Date(dto.date),
+            },
+          },
+          update: { status: student.status, note: student.note },
+          create: {
             studentProfileId: student.studentProfileId,
             timetableEntryId: dto.timetableEntryId,
+            classId: dto.classId,
             date: new Date(dto.date),
+            status: student.status,
+            note: student.note,
           },
-        },
-        update: { status: student.status, note: student.note },
-        create: {
-          studentProfileId: student.studentProfileId,
-          timetableEntryId: dto.timetableEntryId,
-          classId: dto.classId,
-          date: new Date(dto.date),
-          status: student.status,
-          note: student.note,
-        },
-      });
-      results.push(record);
-    }
-    return results;
+        }),
+      ),
+    );
   }
 
   async updateAttendance(id: string, dto: UpdateAttendanceDto) {

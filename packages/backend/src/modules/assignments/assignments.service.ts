@@ -14,12 +14,16 @@ export class AssignmentsService {
   }
 
   async update(id: string, dto: UpdateAssignmentDto) {
+    const existing = await this.prisma.assignment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Ödev bulunamadı');
     const data: any = { ...dto };
     if (dto.dueDate) data.dueDate = new Date(dto.dueDate);
     return this.prisma.assignment.update({ where: { id }, data });
   }
 
   async delete(id: string) {
+    const existing = await this.prisma.assignment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Ödev bulunamadı');
     await this.prisma.assignment.delete({ where: { id } });
     return { message: 'Ödev silindi' };
   }

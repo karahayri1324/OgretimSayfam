@@ -1,10 +1,11 @@
-import { IsString, IsInt, IsOptional, IsBoolean, IsIn, Min } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsBoolean, IsIn, Min, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class CreateClassroomDto {
   @ApiProperty({ example: 'Derslik 101' })
   @IsString()
+  @IsNotEmpty({ message: 'Derslik adı boş olamaz' })
   name: string;
 
   @ApiProperty({ example: 30, required: false })

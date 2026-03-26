@@ -892,7 +892,7 @@ function CreateAssignmentModal({
             setTermId(list[0].termId);
           }
         })
-        .catch(() => {})
+        .catch(() => { console.warn('Donemler yuklenemedi'); })
         .finally(() => setTermsLoading(false));
     } else {
       setTermsLoading(false);

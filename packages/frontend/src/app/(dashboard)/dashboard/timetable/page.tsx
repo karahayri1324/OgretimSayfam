@@ -687,7 +687,9 @@ function FetGenerator() {
           setGenerating(false);
           toast.error('Ders programı oluşturulamadı: ' + (data.data?.error || 'Bilinmeyen hata'));
         }
-      } catch {}
+      } catch (err) {
+        console.warn('Ders programi durum sorgusu hatasi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
+      }
     }, 2000);
 
     return () => clearInterval(interval);

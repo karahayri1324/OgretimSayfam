@@ -36,7 +36,9 @@ app.get('/health', (_req, res) => {
   try {
     execSync('which fet-cl', { encoding: 'utf-8' });
     fetAvailable = true;
-  } catch {}
+  } catch {
+    // fet-cl not found in PATH
+  }
 
   res.json({
     status: 'ok',
@@ -160,7 +162,9 @@ app.post('/api/fet/generate-sync', async (req, res) => {
     const timetable = parseFetOutput(outputDir, activities);
 
     // Cleanup
-    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch (cleanupErr) {
+      console.warn('Gecici dosya temizleme hatasi:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
+    }
 
     res.json({
       success: true,
@@ -223,7 +227,9 @@ async function runGeneration(jobId: string) {
     const timetable = parseFetOutput(outputDir, activities);
 
     // Cleanup
-    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch (cleanupErr) {
+      console.warn('Gecici dosya temizleme hatasi:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
+    }
 
     job.status = 'completed';
     job.result = timetable;

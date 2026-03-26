@@ -15,7 +15,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
     const { user } = context.switchToHttp().getRequest();
-    if (!user) {
+    if (!user || !user.role) {
       throw new ForbiddenException('Bu islemi gerceklestirmek icin yetkiniz yok');
     }
     const hasRole = requiredRoles.some((role) => user.role === role);

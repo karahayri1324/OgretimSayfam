@@ -24,6 +24,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Token yenile' })
   async refresh(@Body() dto: RefreshTokenDto) {

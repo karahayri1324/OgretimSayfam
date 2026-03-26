@@ -1,8 +1,8 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNotEmpty, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSubjectDto {
-  @ApiProperty({ example: 'Matematik' }) @IsString() name: string;
+  @ApiProperty({ example: 'Matematik' }) @IsString() @IsNotEmpty({ message: 'Ders adı boş olamaz' }) name: string;
   @ApiProperty({ required: false, example: 'MAT' }) @IsOptional() @IsString() code?: string;
   @ApiProperty({ required: false, example: '#3B82F6' }) @IsOptional() @IsString() color?: string;
 }

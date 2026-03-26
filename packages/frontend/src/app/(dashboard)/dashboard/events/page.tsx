@@ -52,7 +52,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     loadEvents().finally(() => setLoading(false));
-    api.get('/classes').then(({ data }) => setClasses(data.data || [])).catch(() => {});
+    api.get('/classes').then(({ data }) => setClasses(data.data || [])).catch(() => { console.warn('Siniflar yuklenemedi'); });
   }, []);
 
   const openCreateModal = () => {
