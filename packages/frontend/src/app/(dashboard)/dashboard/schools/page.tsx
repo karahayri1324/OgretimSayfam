@@ -61,7 +61,6 @@ export default function SchoolsPage() {
         </button>
       </div>
 
-      {/* Schools Grid */}
       {schools.length === 0 ? (
         <div className="card text-center py-12">
           <School className="w-12 h-12 mx-auto mb-3 text-gray-300" />
@@ -125,7 +124,6 @@ export default function SchoolsPage() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
       {showModal && (
         <SchoolModal
           school={editingSchool}

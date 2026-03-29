@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth.store';
 import toast from 'react-hot-toast';
 
@@ -17,7 +18,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Set school slug before login so API requests include it
     if (schoolSlug) {
       localStorage.setItem('schoolSlug', schoolSlug);
     }
@@ -44,7 +44,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="w-20 h-20 bg-primary-100 rounded-2xl flex items-center justify-center">
@@ -57,7 +56,6 @@ export default function LoginPage() {
             <p className="text-gray-500 mt-1">Dijital Eğitim Yönetim Sistemi</p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Okul</label>
@@ -101,14 +99,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Forgot password link */}
           <div className="mt-4 text-center">
-            <a href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
+            <Link href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
               Şifremi Unuttum
-            </a>
+            </Link>
           </div>
 
-          {/* Demo info - only in development */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <p className="text-xs font-medium text-blue-800 mb-2">Demo Hesapları (tıklayın):</p>

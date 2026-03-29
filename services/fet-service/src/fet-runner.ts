@@ -1,7 +1,3 @@
-/**
- * FET Runner
- * Executes the fet-cl command-line tool to generate timetables
- */
 
 import { execFile } from 'child_process';
 import fs from 'fs';
@@ -15,26 +11,19 @@ interface FetResult {
   duration?: number;
 }
 
-/**
- * Run fet-cl to generate a timetable
- * @param inputFile Path to the .fet input file
- * @param outputDir Directory where FET will write output files
- * @param timeoutMs Maximum time to wait (default 5 minutes)
- */
 export function runFetCl(
   inputFile: string,
   outputDir: string,
   timeoutMs: number = 300000
 ): Promise<FetResult> {
   return new Promise((resolve) => {
-    // Ensure output directory exists
+    
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
     const startTime = Date.now();
 
-    // Check if fet-cl exists
     const fetClPath = findFetCl();
     if (!fetClPath) {
       resolve({
@@ -46,7 +35,6 @@ export function runFetCl(
 
     console.log(`[FET] Running: ${fetClPath} --inputfile="${inputFile}" --outputdir="${outputDir}"`);
 
-    // Run fet-cl
     const child = execFile(
       fetClPath,
       [
@@ -55,7 +43,7 @@ export function runFetCl(
       ],
       {
         timeout: timeoutMs,
-        maxBuffer: 1024 * 1024 * 10, // 10MB
+        maxBuffer: 1024 * 1024 * 10, 
       },
       (error, stdout, stderr) => {
         const duration = Date.now() - startTime;
@@ -65,7 +53,6 @@ export function runFetCl(
           console.error(`[FET] Error:`, error.message);
           console.error(`[FET] Stderr:`, stderr);
 
-          // Check if it's a timeout
           if (error.killed) {
             resolve({
               success: false,
@@ -76,8 +63,6 @@ export function runFetCl(
             return;
           }
 
-          // FET may exit with non-zero even on partial success
-          // Check if output files were generated
           const outputExists = checkOutputFiles(outputDir);
           if (outputExists) {
             console.log('[FET] Output files found despite error exit code');
@@ -99,7 +84,6 @@ export function runFetCl(
           return;
         }
 
-        // Check if output was generated
         const outputExists = checkOutputFiles(outputDir);
         if (!outputExists) {
           resolve({
@@ -123,9 +107,6 @@ export function runFetCl(
   });
 }
 
-/**
- * Find the fet-cl binary
- */
 function findFetCl(): string | null {
   const possiblePaths = [
     '/usr/bin/fet-cl',
@@ -137,7 +118,6 @@ function findFetCl(): string | null {
     if (fs.existsSync(p)) return p;
   }
 
-  // Try to find via which
   try {
     const { execSync } = require('child_process');
     const result = execSync('which fet-cl', { encoding: 'utf-8' }).trim();
@@ -147,14 +127,9 @@ function findFetCl(): string | null {
   return null;
 }
 
-/**
- * Check if FET generated output files
- * FET creates output in subdirectories like: outputDir/timetables/
- */
 function checkOutputFiles(outputDir: string): boolean {
   try {
-    // FET creates a directory structure with the institution name
-    // Look for any XML files recursively
+    
     const files = findXmlFiles(outputDir);
     return files.length > 0;
   } catch {
@@ -162,9 +137,6 @@ function checkOutputFiles(outputDir: string): boolean {
   }
 }
 
-/**
- * Recursively find XML files in directory
- */
 function findXmlFiles(dir: string): string[] {
   const results: string[] = [];
 

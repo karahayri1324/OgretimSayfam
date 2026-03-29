@@ -20,10 +20,6 @@ import {
   X,
 } from 'lucide-react';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
 interface GradeCategory {
   id?: string;
   name: string;
@@ -71,10 +67,6 @@ interface ClassStudent {
     studentProfileId?: string;
   }[];
 }
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
 
 const SUBJECT_COLORS = [
   '#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c',
@@ -167,10 +159,6 @@ function groupBySubject(grades: GradeItem[]): SubjectGroup[] {
   return groups.sort((a, b) => a.subjectName.localeCompare(b.subjectName, 'tr'));
 }
 
-/* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
-/* ------------------------------------------------------------------ */
-
 function OverallAverageBadge({ average, label }: { average: number; label?: string }) {
   const rounded = Math.round(average * 10) / 10;
   const circumference = 2 * Math.PI * 40;
@@ -178,7 +166,6 @@ function OverallAverageBadge({ average, label }: { average: number; label?: stri
 
   return (
     <div className="card flex flex-col sm:flex-row items-center gap-6">
-      {/* Circular indicator */}
       <div className="relative w-28 h-28 flex-shrink-0">
         <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="8" />
@@ -220,7 +207,6 @@ function SubjectCard({ group }: { group: SubjectGroup }) {
 
   return (
     <div className="card !p-0 overflow-hidden">
-      {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -250,7 +236,6 @@ function SubjectCard({ group }: { group: SubjectGroup }) {
         </div>
       </div>
 
-      {/* Grades list */}
       <div className="border-t border-gray-100">
         {visibleGrades.map((g) => (
           <div
@@ -322,10 +307,6 @@ function EmptyState() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Create / Edit Grade Modal                                          */
-/* ------------------------------------------------------------------ */
-
 function GradeModal({
   mode,
   initialData,
@@ -372,7 +353,6 @@ function GradeModal({
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch students when class changes (only in create mode)
   useEffect(() => {
     if (mode === 'edit') return;
     if (!selectedClassId) return;
@@ -456,7 +436,6 @@ function GradeModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {mode === 'create' && (
             <>
-              {/* Class selector (to filter students) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sinif *</label>
                 <select
@@ -476,7 +455,6 @@ function GradeModal({
                 </select>
               </div>
 
-              {/* Student selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ogrenci *</label>
                 {studentsLoading ? (
@@ -500,7 +478,6 @@ function GradeModal({
                 )}
               </div>
 
-              {/* Subject */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ders *</label>
                 <select
@@ -518,7 +495,6 @@ function GradeModal({
                 </select>
               </div>
 
-              {/* Term */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Donem *</label>
                 <select
@@ -538,7 +514,6 @@ function GradeModal({
             </>
           )}
 
-          {/* Category */}
           {mode === 'create' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
@@ -558,7 +533,6 @@ function GradeModal({
             </div>
           )}
 
-          {/* Score */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Not (0-100) *</label>
             <input
@@ -572,7 +546,6 @@ function GradeModal({
             />
           </div>
 
-          {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tarih *</label>
             <input
@@ -584,7 +557,6 @@ function GradeModal({
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Aciklama</label>
             <textarea
@@ -595,7 +567,6 @@ function GradeModal({
             />
           </div>
 
-          {/* Buttons */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Iptal
@@ -620,10 +591,6 @@ function GradeModal({
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Delete Confirmation Modal                                          */
-/* ------------------------------------------------------------------ */
 
 function DeleteConfirmModal({
   title,
@@ -672,10 +639,6 @@ function DeleteConfirmModal({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Bulk Grade Modal                                                   */
-/* ------------------------------------------------------------------ */
-
 function BulkGradeModal({
   classes,
   subjects,
@@ -708,7 +671,6 @@ function BulkGradeModal({
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch students when class changes
   useEffect(() => {
     if (!selectedClassId) return;
     setStudentsLoading(true);
@@ -786,7 +748,6 @@ function BulkGradeModal({
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Filters row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sinif *</label>
@@ -863,7 +824,6 @@ function BulkGradeModal({
             </div>
           </div>
 
-          {/* Students table */}
           {studentsLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
@@ -920,7 +880,6 @@ function BulkGradeModal({
             </div>
           )}
 
-          {/* Action buttons */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Iptal
@@ -943,10 +902,6 @@ function BulkGradeModal({
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Student / Parent View                                              */
-/* ------------------------------------------------------------------ */
 
 function StudentGradesView({ studentProfileId }: { studentProfileId: string }) {
   const [loading, setLoading] = useState(true);
@@ -971,7 +926,6 @@ function StudentGradesView({ studentProfileId }: { studentProfileId: string }) {
     fetchGrades();
   }, [fetchGrades]);
 
-  // Extract unique terms from grades (use full dataset for term list)
   const terms = useMemo(() => {
     const map = new Map<string, string>();
     for (const g of grades) {
@@ -998,7 +952,6 @@ function StudentGradesView({ studentProfileId }: { studentProfileId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Term selector */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <TermSelector terms={terms} selectedTermId={selectedTermId} onChange={setSelectedTermId} />
       </div>
@@ -1007,10 +960,8 @@ function StudentGradesView({ studentProfileId }: { studentProfileId: string }) {
         <EmptyState />
       ) : (
         <>
-          {/* Overall average */}
           <OverallAverageBadge average={overallAverage} />
 
-          {/* Subject cards grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {subjectGroups.map((group) => (
               <SubjectCard key={group.subjectName} group={group} />
@@ -1021,10 +972,6 @@ function StudentGradesView({ studentProfileId }: { studentProfileId: string }) {
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Teacher View                                                       */
-/* ------------------------------------------------------------------ */
 
 function TeacherGradesView() {
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
@@ -1038,7 +985,6 @@ function TeacherGradesView() {
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
 
-  // Modal state
   const [gradeModal, setGradeModal] = useState<{
     mode: 'create' | 'edit';
     initialData?: any;
@@ -1046,7 +992,6 @@ function TeacherGradesView() {
   const [deleteModal, setDeleteModal] = useState<{ gradeId: string } | null>(null);
   const [bulkModal, setBulkModal] = useState(false);
 
-  // Fetch classes, subjects, and categories on mount
   useEffect(() => {
     const fetchInit = async () => {
       try {
@@ -1072,7 +1017,6 @@ function TeacherGradesView() {
     fetchInit();
   }, []);
 
-  // Fetch students and grades
   const fetchClassGrades = useCallback(() => {
     if (!selectedClassId || !selectedSubjectId) return;
     setTableLoading(true);
@@ -1086,7 +1030,6 @@ function TeacherGradesView() {
         const studentList: ClassStudent[] = data.data || [];
         setStudents(studentList);
 
-        // Extract terms from grades
         if (!selectedTermId) {
           const termMap = new Map<string, string>();
           for (const st of studentList) {
@@ -1109,7 +1052,6 @@ function TeacherGradesView() {
     fetchClassGrades();
   }, [fetchClassGrades]);
 
-  // Delete handler
   const handleDeleteGrade = async (gradeId: string) => {
     try {
       await api.delete(`/grades/${gradeId}`);
@@ -1137,7 +1079,6 @@ function TeacherGradesView() {
     );
   }
 
-  // Compute averages for the table
   const studentsWithAvg = students.map((st) => {
     const avg =
       st.grades.length > 0 ? computeWeightedAverage(st.grades) : null;
@@ -1152,7 +1093,6 @@ function TeacherGradesView() {
 
   return (
     <div className="space-y-6">
-      {/* Filters + Add button */}
       <div className="flex flex-wrap gap-3 items-center">
         <select
           className="input w-48"
@@ -1204,7 +1144,6 @@ function TeacherGradesView() {
         </div>
       </div>
 
-      {/* Class average summary */}
       {classAverage !== null && (
         <div className="card flex items-center gap-4">
           <div
@@ -1221,7 +1160,6 @@ function TeacherGradesView() {
         </div>
       )}
 
-      {/* Students table */}
       <div className="card !p-0 overflow-hidden">
         {tableLoading ? (
           <div className="p-12 text-center">
@@ -1275,7 +1213,6 @@ function TeacherGradesView() {
                                 >
                                   {g.score}
                                 </span>
-                                {/* Edit/Delete buttons on hover */}
                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-white shadow-lg rounded-lg px-1 py-0.5 border border-gray-200 z-10">
                                   <button
                                     onClick={(e) => {
@@ -1341,7 +1278,6 @@ function TeacherGradesView() {
         )}
       </div>
 
-      {/* Grade Create/Edit Modal */}
       {gradeModal && (
         <GradeModal
           mode={gradeModal.mode}
@@ -1355,7 +1291,6 @@ function TeacherGradesView() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteModal && (
         <DeleteConfirmModal
           title="Notu Sil"
@@ -1368,7 +1303,6 @@ function TeacherGradesView() {
         />
       )}
 
-      {/* Bulk Grade Modal */}
       {bulkModal && (
         <BulkGradeModal
           classes={classes}
@@ -1386,10 +1320,6 @@ function TeacherGradesView() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main Page                                                          */
-/* ------------------------------------------------------------------ */
-
 export default function GradesPage() {
   const { user } = useAuthStore();
 
@@ -1397,19 +1327,16 @@ export default function GradesPage() {
   const isParent = user?.role === 'PARENT';
   const isTeacher = user?.role === 'TEACHER' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
 
-  // For parent: we need to figure out the child's studentProfileId.
-  // The parent endpoint doesn't exist in the backend, so we fetch children info.
   const [childStudentProfileId, setChildStudentProfileId] = useState<string | null>(null);
   const [parentLoading, setParentLoading] = useState(isParent);
 
   useEffect(() => {
     if (!isParent || !user?.parentProfileId) return;
-    // Try the parent-specific grades endpoint first, or get children list
+    
     api
       .get(`/grades/parent/${user.parentProfileId}`)
       .then(({ data }) => {
-        // If the endpoint works, we'll handle it differently
-        // For now, if it returns grades, extract the studentProfileId
+        
         const grades = data.data || [];
         if (grades.length > 0 && grades[0].studentProfileId) {
           setChildStudentProfileId(grades[0].studentProfileId);
@@ -1417,14 +1344,13 @@ export default function GradesPage() {
         setParentLoading(false);
       })
       .catch(() => {
-        // Endpoint doesn't exist; fall back - parent can't view grades yet
+        
         setParentLoading(false);
       });
   }, [isParent, user?.parentProfileId]);
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
           <BookOpen className="w-5 h-5 text-primary-600" />
@@ -1439,7 +1365,6 @@ export default function GradesPage() {
         </div>
       </div>
 
-      {/* Content by role */}
       {isStudent && user?.studentProfileId && (
         <StudentGradesView studentProfileId={user.studentProfileId} />
       )}

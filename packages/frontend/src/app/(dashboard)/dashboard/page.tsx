@@ -27,8 +27,6 @@ import {
   Coffee,
 } from 'lucide-react';
 
-// ==================== TYPE DEFINITIONS ====================
-
 interface TimeSlot {
   id: string;
   slotNumber: number;
@@ -126,8 +124,6 @@ interface StudentData {
   dayOfWeek: string;
 }
 
-// ==================== HELPER: TIME COMPARISON ====================
-
 function parseTime(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
@@ -154,8 +150,6 @@ function getSlotStatus(
   return 'future';
 }
 
-// ==================== SUBJECT COLOR UTIL ====================
-
 const SUBJECT_COLORS = [
   { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
   { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -170,8 +164,6 @@ const SUBJECT_COLORS = [
 function getSubjectColor(subjectName: string, index: number) {
   return SUBJECT_COLORS[index % SUBJECT_COLORS.length];
 }
-
-// ==================== SHARED COMPONENTS ====================
 
 function LoadingSpinner() {
   return (
@@ -252,8 +244,6 @@ function AnnouncementList({ announcements }: { announcements: Announcement[] }) 
   );
 }
 
-// ==================== TIMELINE COMPONENT ====================
-
 interface TimelineProps {
   entries: TimetableEntry[];
   timeSlots: TimeSlot[];
@@ -265,13 +255,11 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
   const currentMinutes = getCurrentMinutes();
   const [, setTick] = useState(0);
 
-  // Re-render every minute to update current class highlight
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Build subject color map
   const subjectColorMap = useMemo(() => {
     const map = new Map<string, (typeof SUBJECT_COLORS)[number]>();
     const uniqueSubjects = Array.from(new Set(entries.map((e) => e.subject.name)));
@@ -281,7 +269,6 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
     return map;
   }, [entries]);
 
-  // Build full schedule: map timeSlots, mark occupied or free
   const schedule = useMemo(() => {
     const entryBySlot = new Map<number, TimetableEntry>();
     entries.forEach((e) => {
@@ -312,7 +299,6 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
     });
   }, [entries, timeSlots, currentMinutes]);
 
-  // Build break info between slots
   function getBreakMinutes(slotIndex: number): number | null {
     if (slotIndex >= schedule.length - 1) return null;
     const currentEnd = parseTime(schedule[slotIndex].slot.endTime);
@@ -327,7 +313,6 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
 
   return (
     <div className="relative">
-      {/* Vertical timeline line */}
       <div className="absolute left-[52px] top-2 bottom-2 w-0.5 bg-gray-100"></div>
 
       <div className="space-y-0">
@@ -338,9 +323,7 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
 
           return (
             <div key={slot.id}>
-              {/* Class card */}
               <div className="relative flex items-stretch gap-4">
-                {/* Time column */}
                 <div className="w-[52px] flex-shrink-0 text-right pr-3 py-3">
                   <p className={`text-xs font-semibold ${status === 'past' ? 'text-gray-300' : 'text-gray-600'}`}>
                     {slot.startTime}
@@ -350,7 +333,6 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
                   </p>
                 </div>
 
-                {/* Timeline dot */}
                 <div className="relative flex items-center justify-center w-5 flex-shrink-0 z-10">
                   <div
                     className={`w-3 h-3 rounded-full border-2 ${
@@ -368,10 +350,9 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
                   )}
                 </div>
 
-                {/* Card */}
                 <div className="flex-1 py-1.5">
                   {isFree ? (
-                    /* Free period */
+                    
                     <div
                       className={`rounded-xl border-2 border-dashed px-4 py-3 transition-all ${
                         status === 'past'
@@ -392,7 +373,7 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
                       </div>
                     </div>
                   ) : (
-                    /* Lesson card */
+                    
                     <div
                       className={`rounded-xl border-2 px-4 py-3 transition-all ${
                         status === 'current'
@@ -448,7 +429,6 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
                 </div>
               </div>
 
-              {/* Break indicator */}
               {breakMin !== null && breakMin >= 5 && (
                 <div className="relative flex items-center gap-4 py-0.5">
                   <div className="w-[52px] flex-shrink-0"></div>
@@ -473,8 +453,6 @@ function ScheduleTimeline({ entries, timeSlots, showClassName, role }: TimelineP
   );
 }
 
-// ==================== STUDENT DASHBOARD ====================
-
 function StudentDashboard() {
   const { user } = useAuthStore();
   const [data, setData] = useState<StudentData | null>(null);
@@ -485,8 +463,7 @@ function StudentDashboard() {
       try {
         const { data: res } = await api.get('/dashboard/student');
         setData(res.data);
-      } catch (err) {
-        console.error('Dashboard yuklenemedi:', err);
+      } catch {
         toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
@@ -502,7 +479,6 @@ function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-6 text-white shadow-xl">
         <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"></div>
         <div className="absolute -right-4 top-12 w-24 h-24 bg-white/5 rounded-full"></div>
@@ -524,7 +500,6 @@ function StudentDashboard() {
         </div>
       </div>
 
-      {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="card !p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
@@ -575,7 +550,6 @@ function StudentDashboard() {
         </div>
       </div>
 
-      {/* Today's schedule */}
       {!data.isWeekend && (
         <div className="card">
           <SectionHeader
@@ -590,15 +564,12 @@ function StudentDashboard() {
         </div>
       )}
 
-      {/* Bottom row: announcements + assignments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Announcements */}
         <div className="card">
           <SectionHeader icon={Bell} title="Son Duyurular" />
           <AnnouncementList announcements={data.recentAnnouncements} />
         </div>
 
-        {/* Pending assignments */}
         <div className="card">
           <SectionHeader icon={ClipboardList} title="Yaklasan Odevler" />
           {data.pendingAssignments.length === 0 ? (
@@ -643,7 +614,6 @@ function StudentDashboard() {
         </div>
       </div>
 
-      {/* Recent grades */}
       {data.recentGrades && data.recentGrades.length > 0 && (
         <div className="card">
           <SectionHeader icon={BarChart3} title="Son Notlar" />
@@ -683,8 +653,6 @@ function StudentDashboard() {
   );
 }
 
-// ==================== TEACHER DASHBOARD ====================
-
 function TeacherDashboard() {
   const { user } = useAuthStore();
   const [data, setData] = useState<TeacherData | null>(null);
@@ -695,8 +663,7 @@ function TeacherDashboard() {
       try {
         const { data: res } = await api.get('/dashboard/teacher');
         setData(res.data);
-      } catch (err) {
-        console.error('Dashboard yuklenemedi:', err);
+      } catch {
         toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
@@ -712,7 +679,6 @@ function TeacherDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 p-6 text-white shadow-xl">
         <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"></div>
         <div className="absolute -right-4 top-12 w-24 h-24 bg-white/5 rounded-full"></div>
@@ -734,7 +700,6 @@ function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="card !p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
@@ -785,7 +750,6 @@ function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Today's schedule */}
       {!data.isWeekend && (
         <div className="card">
           <SectionHeader
@@ -801,7 +765,6 @@ function TeacherDashboard() {
         </div>
       )}
 
-      {/* Announcements */}
       <div className="card">
         <SectionHeader icon={Bell} title="Son Duyurular" />
         <AnnouncementList announcements={data.recentAnnouncements} />
@@ -809,8 +772,6 @@ function TeacherDashboard() {
     </div>
   );
 }
-
-// ==================== PARENT DASHBOARD ====================
 
 function ParentDashboard() {
   const { user } = useAuthStore();
@@ -823,8 +784,7 @@ function ParentDashboard() {
       try {
         const { data: res } = await api.get('/dashboard/parent');
         setData(res.data);
-      } catch (err) {
-        console.error('Dashboard yuklenemedi:', err);
+      } catch {
         toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
@@ -852,7 +812,6 @@ function ParentDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 p-6 text-white shadow-xl">
         <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"></div>
         <div className="absolute -right-4 top-12 w-24 h-24 bg-white/5 rounded-full"></div>
@@ -874,7 +833,6 @@ function ParentDashboard() {
         </div>
       </div>
 
-      {/* Child tabs (if multiple children) */}
       {data.children.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {data.children.map((c, idx) => (
@@ -897,7 +855,6 @@ function ParentDashboard() {
         </div>
       )}
 
-      {/* Child info card */}
       <div className="card !p-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
@@ -910,7 +867,6 @@ function ParentDashboard() {
         </div>
       </div>
 
-      {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="card !p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
@@ -963,7 +919,6 @@ function ParentDashboard() {
         </div>
       </div>
 
-      {/* Today's schedule */}
       {!data.isWeekend && (
         <div className="card">
           <SectionHeader
@@ -978,15 +933,12 @@ function ParentDashboard() {
         </div>
       )}
 
-      {/* Bottom row: announcements + assignments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Announcements */}
         <div className="card">
           <SectionHeader icon={Bell} title="Son Duyurular" />
           <AnnouncementList announcements={data.recentAnnouncements} />
         </div>
 
-        {/* Pending assignments */}
         <div className="card">
           <SectionHeader icon={ClipboardList} title="Bekleyen Odevler" />
           {child.pendingAssignments.length === 0 ? (
@@ -1031,7 +983,6 @@ function ParentDashboard() {
         </div>
       </div>
 
-      {/* Recent grades */}
       {child.recentGrades && child.recentGrades.length > 0 && (
         <div className="card">
           <SectionHeader icon={BarChart3} title="Son Notlar" />
@@ -1071,8 +1022,6 @@ function ParentDashboard() {
   );
 }
 
-// ==================== ADMIN DASHBOARD ====================
-
 function AdminStatCard({
   icon: Icon,
   label,
@@ -1109,8 +1058,7 @@ function AdminDashboard() {
       try {
         const { data: res } = await api.get('/dashboard/admin');
         setData(res.data);
-      } catch (err) {
-        console.error('Dashboard yuklenemedi:', err);
+      } catch {
         toast.error('Dashboard verileri yuklenemedi');
       } finally {
         setLoading(false);
@@ -1128,7 +1076,6 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-gray-900 p-6 text-white shadow-xl">
         <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"></div>
         <div className="absolute -right-4 top-12 w-24 h-24 bg-white/5 rounded-full"></div>
@@ -1147,7 +1094,6 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminStatCard
           icon={Users}
@@ -1175,7 +1121,6 @@ function AdminDashboard() {
         />
       </div>
 
-      {/* Alerts */}
       {stats.todayAbsentTeachers > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
           <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
@@ -1194,9 +1139,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* Attendance & Substitutions Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Today's attendance summary */}
         <div className="card">
           <SectionHeader icon={UserCheck} title="Bugunku Yoklama Ozeti" />
           {totalAttendance === 0 ? (
@@ -1233,7 +1176,6 @@ function AdminDashboard() {
           )}
         </div>
 
-        {/* Today's substitutions */}
         <div className="card">
           <SectionHeader icon={Users} title="Bugunku Vekil Atamalar" />
           {stats.todaySubstitutions === 0 && stats.todayAbsentTeachers === 0 ? (
@@ -1270,7 +1212,6 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Announcements & Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <SectionHeader icon={Bell} title="Son Duyurular" />
@@ -1308,8 +1249,6 @@ function AdminDashboard() {
   );
 }
 
-// ==================== MAIN PAGE ====================
-
 export default function DashboardPage() {
   const { user } = useAuthStore();
 
@@ -1333,7 +1272,6 @@ export default function DashboardPage() {
     return <ParentDashboard />;
   }
 
-  // Fallback (unknown role)
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-6 text-white shadow-xl">

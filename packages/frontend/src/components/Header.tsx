@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth.store';
 import { Bell, Clock, LogOut, User, ChevronDown, School, Check } from 'lucide-react';
 import { roleLabels } from '@/lib/utils';
@@ -46,21 +47,17 @@ export default function Header() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
 
-  // Clock state
   const [currentTime, setCurrentTime] = useState('');
 
-  // Notification dropdown
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // User dropdown
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Live clock - update every minute
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -73,16 +70,13 @@ export default function Header() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch unread count on mount and periodically
   const fetchUnreadCount = useCallback(async () => {
     try {
       const { data } = await api.get('/notifications/unread-count');
       if (data.success && typeof data.data?.count === 'number') {
         setUnreadCount(data.data.count);
       }
-    } catch (err) {
-      console.warn('Bildirim sayisi alinamadi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
-    }
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -91,17 +85,14 @@ export default function Header() {
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
-  // Fetch notifications when dropdown opens
   const fetchNotifications = async () => {
     setNotifLoading(true);
     try {
       const { data } = await api.get('/notifications');
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setNotifications(data.data.slice(0, 5));
       }
-    } catch (err) {
-      console.warn('Bildirimler alinamadi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
-    } finally {
+    } catch { } finally {
       setNotifLoading(false);
     }
   };
@@ -121,9 +112,7 @@ export default function Header() {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err) {
-      console.warn('Bildirim okundu olarak isaretlenemedi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
-    }
+    } catch { }
   };
 
   const handleUserMenuToggle = () => {
@@ -137,7 +126,6 @@ export default function Header() {
     router.push('/login');
   };
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
@@ -155,7 +143,6 @@ export default function Header() {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-6">
-      {/* Left side - Welcome and school */}
       <div className="flex items-center gap-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
@@ -175,15 +162,12 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Right side - Clock, notifications, user */}
       <div className="flex items-center gap-3">
-        {/* Live clock */}
         <div className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
           <Clock className="w-4 h-4" />
           <span className="font-medium tabular-nums">{currentTime}</span>
         </div>
 
-        {/* Notification bell */}
         <div ref={notifRef} className="relative">
           <button
             onClick={handleNotifToggle}
@@ -198,7 +182,6 @@ export default function Header() {
             )}
           </button>
 
-          {/* Notification dropdown */}
           {notifOpen && (
             <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -252,21 +235,19 @@ export default function Header() {
               </div>
 
               <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50">
-                <a
+                <Link
                   href="/dashboard/notifications"
                   className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center justify-center"
                 >
                   Tumunu Gor
-                </a>
+                </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-gray-200"></div>
 
-        {/* User avatar and dropdown */}
         <div ref={userMenuRef} className="relative">
           <button
             onClick={handleUserMenuToggle}
@@ -289,7 +270,6 @@ export default function Header() {
             <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
           </button>
 
-          {/* User dropdown */}
           {userMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100">
@@ -303,13 +283,13 @@ export default function Header() {
               </div>
 
               <div className="py-1">
-                <a
+                <Link
                   href="/dashboard/profile"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <User className="w-4 h-4 text-gray-400" />
                   Profil
-                </a>
+                </Link>
               </div>
 
               <div className="border-t border-gray-100 py-1">

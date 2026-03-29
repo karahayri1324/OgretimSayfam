@@ -97,7 +97,6 @@ export default function AttendancePage() {
   const [selectedEntryId, setSelectedEntryId] = useState('');
   const [timetableLoading, setTimetableLoading] = useState(false);
 
-  // Load classes
   useEffect(() => {
     api
       .get('/classes')
@@ -111,7 +110,6 @@ export default function AttendancePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load students when class changes
   useEffect(() => {
     if (selectedClass) {
       setStudentsLoading(true);
@@ -134,7 +132,6 @@ export default function AttendancePage() {
     }
   }, [selectedClass]);
 
-  // Load timetable entries when class or date changes
   useEffect(() => {
     if (!selectedClass || !date) return;
     setTimetableLoading(true);
@@ -159,7 +156,6 @@ export default function AttendancePage() {
       .finally(() => setTimetableLoading(false));
   }, [selectedClass, date]);
 
-  // Load existing attendance when entry/date changes
   useEffect(() => {
     if (!selectedClass || !date) return;
     if (!students || students.length === 0) return;
@@ -168,7 +164,7 @@ export default function AttendancePage() {
       .then(({ data }) => {
         const records = data.data || [];
         if (records.length > 0 && students.length > 0) {
-          // Filter by selected timetable entry if available
+          
           const relevantRecords = selectedEntryId
             ? records.filter((r: any) => r.timetableEntryId === selectedEntryId)
             : records;
@@ -176,11 +172,11 @@ export default function AttendancePage() {
           if (relevantRecords.length > 0) {
             const att: Record<string, AttendanceStatus> = {};
             const nts: Record<string, string> = {};
-            // Start with all PRESENT
+            
             students.forEach((s: any) => {
               att[s.id] = 'PRESENT';
             });
-            // Override with saved records
+            
             relevantRecords.forEach((r: any) => {
               att[r.studentProfileId] = r.status;
               if (r.note) nts[r.studentProfileId] = r.note;
@@ -191,11 +187,10 @@ export default function AttendancePage() {
         }
       })
       .catch(() => {
-        // Silently fail - keep current state
+        
       });
   }, [selectedClass, date, selectedEntryId, students]);
 
-  // Summary counts
   const summary = useMemo(() => {
     const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
     Object.values(attendance).forEach((status) => {
@@ -204,7 +199,6 @@ export default function AttendancePage() {
     return counts;
   }, [attendance]);
 
-  // Mark all present
   const handleMarkAllPresent = () => {
     const att: Record<string, AttendanceStatus> = {};
     students.forEach((s: any) => {
@@ -213,7 +207,6 @@ export default function AttendancePage() {
     setAttendance(att);
   };
 
-  // Save attendance
   const handleSave = async () => {
     if (!selectedEntryId) {
       toast.error('Lütfen bir ders saati seçin');
@@ -279,7 +272,6 @@ export default function AttendancePage() {
         </div>
       ) : (
         <>
-          {/* Filters Row */}
           <div className="card">
             <div className="flex flex-wrap items-end gap-4">
               <div>
@@ -332,7 +324,6 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          {/* Summary Badges */}
           {students.length > 0 && (
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium">
@@ -364,7 +355,6 @@ export default function AttendancePage() {
             </div>
           )}
 
-          {/* Student Table */}
           <div className="card !p-0 overflow-hidden">
             {studentsLoading ? (
               <div className="p-8 text-center">
@@ -417,7 +407,7 @@ export default function AttendancePage() {
                                   <button
                                     key={status}
                                     onClick={() =>
-                                      setAttendance({ ...attendance, [s.id]: status })
+                                      setAttendance((prev) => ({ ...prev, [s.id]: status }))
                                     }
                                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
                                       isActive
@@ -446,7 +436,6 @@ export default function AttendancePage() {
             )}
           </div>
 
-          {/* Save Button */}
           {students.length > 0 && (
             <div className="flex justify-end">
               <button

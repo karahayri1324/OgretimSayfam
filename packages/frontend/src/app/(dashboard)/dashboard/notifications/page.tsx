@@ -17,10 +17,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// ---------------------------------------------------------------------------
-// Types & constants
-// ---------------------------------------------------------------------------
-
 interface Notification {
   id: string;
   title: string;
@@ -98,10 +94,6 @@ function formatNotificationDate(dateString: string): string {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Main Page Component
-// ---------------------------------------------------------------------------
-
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,16 +144,15 @@ export default function NotificationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  // Mark single as read
   const markAsRead = async (id: string) => {
-    // Optimistic update
+    
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
     );
     try {
       await api.put(`/notifications/${id}/read`);
     } catch {
-      // Revert on error
+      
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
       );
@@ -169,7 +160,6 @@ export default function NotificationsPage() {
     }
   };
 
-  // Mark all as read
   const markAllAsRead = async () => {
     setMarkingAll(true);
     try {
@@ -185,10 +175,6 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  // ---------------------------------------------------------------------------
-  // Loading state
-  // ---------------------------------------------------------------------------
-
   if (loading && notifications.length === 0) {
     return (
       <div className="space-y-6">
@@ -201,13 +187,8 @@ export default function NotificationsPage() {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
@@ -242,7 +223,6 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => setFilter('all')}
@@ -266,7 +246,6 @@ export default function NotificationsPage() {
         </button>
       </div>
 
-      {/* Notifications List */}
       {notifications.length === 0 ? (
         <div className="card text-center py-16">
           <Inbox className="w-14 h-14 mx-auto mb-4 text-gray-200" />
@@ -301,14 +280,12 @@ export default function NotificationsPage() {
                 `}
               >
                 <div className="p-4 sm:p-5 flex items-start gap-4">
-                  {/* Type icon */}
                   <div
                     className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${cfg.bgClass} ${cfg.textClass}`}
                   >
                     {cfg.icon}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -333,7 +310,6 @@ export default function NotificationsPage() {
                         </p>
                       </div>
 
-                      {/* Unread indicator */}
                       {!notification.isRead && (
                         <div className="flex-shrink-0 mt-1">
                           <span className="block w-2.5 h-2.5 rounded-full bg-primary-500 ring-2 ring-primary-200" />
@@ -341,7 +317,6 @@ export default function NotificationsPage() {
                       )}
                     </div>
 
-                    {/* Date */}
                     <p className="text-xs text-gray-400 mt-2">
                       {formatNotificationDate(notification.createdAt)}
                     </p>
@@ -353,7 +328,6 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* Pagination */}
       {meta.totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-gray-500">

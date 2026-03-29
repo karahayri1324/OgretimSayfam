@@ -69,20 +69,18 @@ export class AcademicYearsService {
 
   async setCurrent(id: string) {
     const year = await this.findById(id);
-    // Unset all other current years for the same school
+    
     await this.prisma.academicYear.updateMany({
       where: { schoolId: year.schoolId, isCurrent: true },
       data: { isCurrent: false },
     });
-    // Set this one as current
+    
     return this.prisma.academicYear.update({
       where: { id },
       data: { isCurrent: true },
       include: { terms: true },
     });
   }
-
-  // Term operations
 
   async createTerm(academicYearId: string, dto: CreateTermDto) {
     const year = await this.findById(academicYearId);
@@ -131,12 +129,11 @@ export class AcademicYearsService {
     });
     if (!term) throw new NotFoundException('Dönem bulunamadı');
 
-    // Unset all other current terms under the same academic year
     await this.prisma.term.updateMany({
       where: { academicYearId: term.academicYearId, isCurrent: true },
       data: { isCurrent: false },
     });
-    // Set this one as current
+    
     return this.prisma.term.update({
       where: { id: termId },
       data: { isCurrent: true },

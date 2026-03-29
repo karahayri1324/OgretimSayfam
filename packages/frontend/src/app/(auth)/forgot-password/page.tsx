@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
     try {
       await api.post('/auth/reset-password', { token, newPassword });
       toast.success('Sifre basariyla sifirlandi!');
-      // Redirect to login after short delay
+      
       setTimeout(() => {
         router.push('/login');
       }, 1500);
@@ -65,7 +65,6 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="w-20 h-20 bg-primary-100 rounded-2xl flex items-center justify-center">
@@ -84,7 +83,6 @@ export default function ForgotPasswordPage() {
             </p>
           </div>
 
-          {/* Step 1: Email form */}
           {step === 'email' && (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
@@ -106,7 +104,6 @@ export default function ForgotPasswordPage() {
                 {loading ? 'Gonderiliyor...' : 'Sifirlama Baglantisi Gonder'}
               </button>
 
-              {/* Direct token entry option */}
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200" />
@@ -126,7 +123,6 @@ export default function ForgotPasswordPage() {
             </form>
           )}
 
-          {/* Step 2: Success message */}
           {step === 'success' && (
             <div className="space-y-4">
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -163,7 +159,6 @@ export default function ForgotPasswordPage() {
             </div>
           )}
 
-          {/* Step 3: Reset password form */}
           {step === 'reset' && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
@@ -222,7 +217,6 @@ export default function ForgotPasswordPage() {
             </form>
           )}
 
-          {/* Back to login */}
           <div className="mt-6 text-center">
             <Link href="/login" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
               Giris sayfasina don

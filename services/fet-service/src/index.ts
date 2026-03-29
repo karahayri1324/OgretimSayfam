@@ -10,13 +10,11 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// Ensure tmp directory exists
 const TMP_DIR = path.join(__dirname, '..', 'tmp');
 if (!fs.existsSync(TMP_DIR)) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
 }
 
-// In-memory storage for generation jobs
 interface GenerationJob {
   status: 'pending' | 'running' | 'completed' | 'failed';
   inputData: any;
@@ -27,28 +25,34 @@ interface GenerationJob {
 }
 
 const jobs: Record<string, GenerationJob> = {};
+const MAX_JOBS = 100;
+const JOB_TTL_MS = 60 * 60 * 1000; 
 
-// Health check
-app.get('/health', (_req, res) => {
-  // Check if fet-cl is available
-  const { execSync } = require('child_process');
-  let fetAvailable = false;
-  try {
-    execSync('which fet-cl', { encoding: 'utf-8' });
-    fetAvailable = true;
-  } catch {
-    // fet-cl not found in PATH
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, job] of Object.entries(jobs)) {
+    if (job.completedAt && now - new Date(job.completedAt).getTime() > JOB_TTL_MS) {
+      delete jobs[id];
+    }
   }
+}, 5 * 60 * 1000); 
 
+let fetClAvailable = false;
+try {
+  const { execSync } = require('child_process');
+  execSync('which fet-cl', { encoding: 'utf-8' });
+  fetClAvailable = true;
+} catch { }
+
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'fet-service',
-    fetClAvailable: fetAvailable,
+    fetClAvailable: fetClAvailable,
     activeJobs: Object.keys(jobs).length,
   });
 });
 
-// Generate FET XML preview (without running FET)
 app.post('/api/fet/preview-xml', (req, res) => {
   try {
     const xml = generateFetXml(req.body);
@@ -58,7 +62,6 @@ app.post('/api/fet/preview-xml', (req, res) => {
   }
 });
 
-// Start timetable generation
 app.post('/api/fet/generate', async (req, res) => {
   const { schoolId, teachers, subjects, classes, rooms, activities, constraints } = req.body;
 
@@ -66,27 +69,27 @@ app.post('/api/fet/generate', async (req, res) => {
     return res.status(400).json({ success: false, message: 'schoolId gerekli' });
   }
 
-  // Create a job
+  if (Object.keys(jobs).length >= MAX_JOBS) {
+    return res.status(429).json({ success: false, message: 'Maksimum is sayisina ulasildi. Lutfen daha sonra tekrar deneyin.' });
+  }
+
   const jobId = `${schoolId}_${Date.now()}`;
   jobs[jobId] = {
     status: 'pending',
     inputData: { schoolId, teachers, subjects, classes, rooms, activities, constraints },
   };
 
-  // Return job ID immediately
   res.json({
     success: true,
     message: 'Ders programı oluşturma başlatıldı',
     jobId,
   });
 
-  // Run generation in background
   runGeneration(jobId).catch((err) => {
     console.error(`Job ${jobId} failed:`, err);
   });
 });
 
-// Check generation status
 app.get('/api/fet/status/:jobId', (req, res) => {
   const job = jobs[req.params.jobId];
   if (!job) {
@@ -105,7 +108,6 @@ app.get('/api/fet/status/:jobId', (req, res) => {
   });
 });
 
-// Get generation result
 app.get('/api/fet/result/:jobId', (req, res) => {
   const job = jobs[req.params.jobId];
   if (!job) {
@@ -126,7 +128,6 @@ app.get('/api/fet/result/:jobId', (req, res) => {
   });
 });
 
-// Synchronous generation (waits for result)
 app.post('/api/fet/generate-sync', async (req, res) => {
   const { schoolId, teachers, subjects, classes, rooms, activities, constraints } = req.body;
 
@@ -135,18 +136,15 @@ app.post('/api/fet/generate-sync', async (req, res) => {
   }
 
   try {
-    // Generate FET XML
+    
     const xml = generateFetXml({ teachers, subjects, classes, rooms, activities, constraints });
 
-    // Create temp directory for this job
     const jobDir = path.join(TMP_DIR, `${schoolId}_${Date.now()}`);
     fs.mkdirSync(jobDir, { recursive: true });
 
-    // Write input file
     const inputFile = path.join(jobDir, 'input.fet');
     fs.writeFileSync(inputFile, xml, 'utf-8');
 
-    // Run FET
     const outputDir = path.join(jobDir, 'output');
     const fetResult = await runFetCl(inputFile, outputDir);
 
@@ -158,10 +156,8 @@ app.post('/api/fet/generate-sync', async (req, res) => {
       });
     }
 
-    // Parse output (pass activities so parser can map IDs to teacher/subject/class)
     const timetable = parseFetOutput(outputDir, activities);
 
-    // Cleanup
     try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch (cleanupErr) {
       console.warn('Gecici dosya temizleme hatasi:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
     }
@@ -179,7 +175,6 @@ app.post('/api/fet/generate-sync', async (req, res) => {
   }
 });
 
-// Delete a job
 app.delete('/api/fet/job/:jobId', (req, res) => {
   const jobId = req.params.jobId;
   if (jobs[jobId]) {
@@ -190,7 +185,6 @@ app.delete('/api/fet/job/:jobId', (req, res) => {
   }
 });
 
-// Background generation function
 async function runGeneration(jobId: string) {
   const job = jobs[jobId];
   if (!job) return;
@@ -201,18 +195,14 @@ async function runGeneration(jobId: string) {
   try {
     const { schoolId, teachers, subjects, classes, rooms, activities, constraints } = job.inputData;
 
-    // Generate FET XML
     const xml = generateFetXml({ teachers, subjects, classes, rooms, activities, constraints });
 
-    // Create temp directory
     const jobDir = path.join(TMP_DIR, jobId);
     fs.mkdirSync(jobDir, { recursive: true });
 
-    // Write input file
     const inputFile = path.join(jobDir, 'input.fet');
     fs.writeFileSync(inputFile, xml, 'utf-8');
 
-    // Run FET
     const outputDir = path.join(jobDir, 'output');
     const fetResult = await runFetCl(inputFile, outputDir);
 
@@ -223,10 +213,8 @@ async function runGeneration(jobId: string) {
       return;
     }
 
-    // Parse output (pass activities so parser can map IDs to teacher/subject/class)
     const timetable = parseFetOutput(outputDir, activities);
 
-    // Cleanup
     try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch (cleanupErr) {
       console.warn('Gecici dosya temizleme hatasi:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
     }

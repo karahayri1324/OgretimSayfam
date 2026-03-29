@@ -1,8 +1,3 @@
-/**
- * FET XML Builder
- * Generates FET-compatible .fet XML input files from school data
- * FET XML format reference: https://www.lalescu.ro/liviu/fet/
- */
 
 interface Teacher {
   id: string;
@@ -44,21 +39,18 @@ interface Activity {
 }
 
 interface Constraints {
-  // Teacher constraints
+  
   teacherMaxHoursDaily?: { teacherName: string; maxHours: number }[];
   teacherMaxGapsDaily?: { teacherName: string; maxGaps: number }[];
   teacherNotAvailable?: { teacherName: string; day: string; hour: string }[];
 
-  // Class/Students constraints
   classMaxHoursDaily?: { className: string; maxHours: number }[];
   classMaxGapsDaily?: { className: string; maxGaps: number }[];
   classNotAvailable?: { className: string; day: string; hour: string }[];
 
-  // Activity constraints
   activityPreferredRoom?: { activityId: number; roomName: string }[];
   activityPreferredTime?: { activityId: number; day: string; hour: string }[];
 
-  // General constraints
   maxDaysPerWeek?: number;
   minHoursDaily?: number;
   maxHoursDaily?: number;
@@ -171,11 +163,10 @@ ${generateSpaceConstraints(input.constraints, input.activities)}
 }
 
 function generateActivitiesXml(activities: Activity[]): string {
-  // Group activities by teacher+subject+class to handle split activities
+  
   let activityId = 1;
   const xmlParts: string[] = [];
 
-  // Group activities that have totalDuration > duration (split into multiple)
   const grouped = new Map<string, Activity[]>();
   for (const act of activities) {
     const key = `${act.teacherId}_${act.subjectId}_${act.classId}`;
@@ -187,7 +178,6 @@ function generateActivitiesXml(activities: Activity[]): string {
     const act = group[0];
     const totalDuration = group.reduce((sum, a) => sum + a.duration, 0);
 
-    // If multiple activities in group, they share a group ID for split
     if (group.length > 1) {
       const groupId = activityId;
       for (const a of group) {
@@ -228,7 +218,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
 
   const parts: string[] = [];
 
-  // Teacher not available times
   if (constraints.teacherNotAvailable) {
     for (const c of constraints.teacherNotAvailable) {
       parts.push(`<ConstraintTeacherNotAvailableTimes>
@@ -245,7 +234,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
-  // Teacher max hours daily
   if (constraints.teacherMaxHoursDaily) {
     for (const c of constraints.teacherMaxHoursDaily) {
       parts.push(`<ConstraintTeacherMaxHoursDaily>
@@ -258,7 +246,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
-  // Teacher max gaps per day
   if (constraints.teacherMaxGapsDaily) {
     for (const c of constraints.teacherMaxGapsDaily) {
       parts.push(`<ConstraintTeacherMaxGapsPerDay>
@@ -271,7 +258,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
-  // Class/Students not available times
   if (constraints.classNotAvailable) {
     for (const c of constraints.classNotAvailable) {
       parts.push(`<ConstraintStudentsSetNotAvailableTimes>
@@ -288,7 +274,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
-  // Class max hours daily
   if (constraints.classMaxHoursDaily) {
     for (const c of constraints.classMaxHoursDaily) {
       parts.push(`<ConstraintStudentsSetMaxHoursDaily>
@@ -301,7 +286,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
-  // Class max gaps per day
   if (constraints.classMaxGapsDaily) {
     for (const c of constraints.classMaxGapsDaily) {
       parts.push(`<ConstraintStudentsSetMaxGapsPerDay>
@@ -314,7 +298,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
     }
   }
 
-  // Activity preferred times
   if (constraints.activityPreferredTime) {
     for (const c of constraints.activityPreferredTime) {
       parts.push(`<ConstraintActivityPreferredStartingTime>
@@ -335,7 +318,6 @@ function generateTimeConstraints(constraints: Constraints | undefined, days: str
 function generateSpaceConstraints(constraints: Constraints | undefined, activities?: Activity[]): string {
   const parts: string[] = [];
 
-  // Activity preferred rooms from constraints
   if (constraints?.activityPreferredRoom) {
     for (const c of constraints.activityPreferredRoom) {
       parts.push(`<ConstraintActivityPreferredRoom>
@@ -349,8 +331,6 @@ function generateSpaceConstraints(constraints: Constraints | undefined, activiti
     }
   }
 
-  // Also add preferred rooms from activities that have a room specified
-  // Must use the same grouping logic as generateActivitiesXml to match activity IDs
   if (activities) {
     const grouped = new Map<string, Activity[]>();
     for (const act of activities) {

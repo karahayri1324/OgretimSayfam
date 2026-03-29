@@ -50,7 +50,6 @@ export class UsersService {
       data: { ...userData, password: hashedPassword },
     });
 
-    // Create profile based on role
     if (dto.role === UserRole.TEACHER) {
       await this.prisma.teacherProfile.create({ data: { userId: user.id } });
     } else if (dto.role === UserRole.STUDENT) {

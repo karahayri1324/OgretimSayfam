@@ -16,7 +16,6 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);
 
-  // ==================== 1. OKUL ====================
   const school = await prisma.school.upsert({
     where: { slug: 'ataturk-anadolu' },
     update: {},
@@ -31,7 +30,6 @@ async function main() {
   });
   console.log(`✅ Okul oluşturuldu: ${school.name}`);
 
-  // ==================== 2. AKADEMİK YIL & DÖNEMLER ====================
   let academicYear = await prisma.academicYear.findFirst({
     where: { schoolId: school.id, name: '2025-2026' },
   });
@@ -82,9 +80,6 @@ async function main() {
   });
   console.log(`✅ Dönemler oluşturuldu: ${term1.name}, ${term2.name}`);
 
-  // ==================== 3. KULLANICILAR ====================
-
-  // --- Super Admin ---
   const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@ogretimsayfam.com' },
     update: {},
@@ -99,7 +94,6 @@ async function main() {
   });
   console.log(`✅ Süper admin oluşturuldu: ${superAdmin.email}`);
 
-  // --- Okul Müdürü ---
   const schoolAdmin = await prisma.user.upsert({
     where: { email: 'mudur@ataturk-anadolu.com' },
     update: {},
@@ -115,7 +109,6 @@ async function main() {
   });
   console.log(`✅ Okul müdürü oluşturuldu: ${schoolAdmin.email}`);
 
-  // --- Öğretmenler ---
   const teacherData = [
     { email: 'ogretmen1@ataturk-anadolu.com', firstName: 'Mehmet', lastName: 'Kaya', branch: 'Matematik', title: 'Matematik Öğretmeni' },
     { email: 'ogretmen2@ataturk-anadolu.com', firstName: 'Ayşe', lastName: 'Demir', branch: 'Fizik', title: 'Fizik Öğretmeni' },
@@ -158,7 +151,6 @@ async function main() {
   }
   console.log(`✅ ${teachers.length} öğretmen oluşturuldu`);
 
-  // --- Öğrenciler ---
   const studentData = [
     { email: 'ogrenci1@ataturk-anadolu.com', firstName: 'Ali', lastName: 'Öztürk', studentNumber: '1001' },
     { email: 'ogrenci2@ataturk-anadolu.com', firstName: 'Zeynep', lastName: 'Arslan', studentNumber: '1002' },
@@ -184,12 +176,10 @@ async function main() {
       },
     });
 
-    // Profile will be created after classes are set up (need classId)
     students.push({ user, profile: null });
   }
   console.log(`✅ ${students.length} öğrenci oluşturuldu`);
 
-  // --- Veliler ---
   const parentData = [
     { email: 'veli1@ataturk-anadolu.com', firstName: 'Hasan', lastName: 'Öztürk' },
     { email: 'veli2@ataturk-anadolu.com', firstName: 'Hatice', lastName: 'Arslan' },
@@ -224,7 +214,6 @@ async function main() {
   }
   console.log(`✅ ${parents.length} veli oluşturuldu`);
 
-  // ==================== 4. SINIFLAR ====================
   const classData = [
     { name: '9-A', grade: 9, section: 'A' },
     { name: '9-B', grade: 9, section: 'B' },
@@ -256,7 +245,6 @@ async function main() {
   }
   console.log(`✅ ${Object.keys(classes).length} sınıf oluşturuldu`);
 
-  // --- Öğrenci profillerini oluştur ve 9-A'ya ata ---
   for (let i = 0; i < students.length; i++) {
     const sd = studentData[i];
     const profile = await prisma.studentProfile.upsert({
@@ -272,8 +260,6 @@ async function main() {
   }
   console.log('✅ Öğrenciler 9-A sınıfına atandı');
 
-  // --- Veli-öğrenci ilişkileri ---
-  // Veli 1 -> Öğrenci 1 (Ali Öztürk'ün babası)
   const ps1Existing = await prisma.parentStudent.findUnique({
     where: {
       parentId_studentId: {
@@ -292,7 +278,6 @@ async function main() {
     });
   }
 
-  // Veli 2 -> Öğrenci 2 (Zeynep Arslan'ın annesi)
   const ps2Existing = await prisma.parentStudent.findUnique({
     where: {
       parentId_studentId: {
@@ -312,7 +297,6 @@ async function main() {
   }
   console.log('✅ Veli-öğrenci ilişkileri oluşturuldu');
 
-  // ==================== 5. DERSLER ====================
   const subjectData = [
     { name: 'Matematik', code: 'MAT', color: '#4CAF50' },
     { name: 'Fizik', code: 'FIZ', color: '#2196F3' },
@@ -347,7 +331,6 @@ async function main() {
   }
   console.log(`✅ ${Object.keys(subjects).length} ders oluşturuldu`);
 
-  // ==================== 6. DERSLİKLER ====================
   const classroomData = [
     { name: 'Derslik 101', capacity: 30, type: 'NORMAL' },
     { name: 'Derslik 102', capacity: 30, type: 'NORMAL' },
@@ -381,37 +364,35 @@ async function main() {
   }
   console.log(`✅ ${Object.keys(classrooms).length} derslik oluşturuldu`);
 
-  // ==================== 7. ÖĞRETMEN ATAMALARI ====================
-  // Matematik öğretmeni -> 9-A Matematik, 9-B Matematik, 10-A Matematik
   const assignmentData = [
     { teacherIdx: 0, className: '9-A', subjectName: 'Matematik', hours: 6 },
     { teacherIdx: 0, className: '9-B', subjectName: 'Matematik', hours: 6 },
     { teacherIdx: 0, className: '10-A', subjectName: 'Matematik', hours: 5 },
-    // Fizik öğretmeni -> 9-A Fizik, 9-B Fizik, 10-A Fizik
+    
     { teacherIdx: 1, className: '9-A', subjectName: 'Fizik', hours: 4 },
     { teacherIdx: 1, className: '9-B', subjectName: 'Fizik', hours: 4 },
     { teacherIdx: 1, className: '10-A', subjectName: 'Fizik', hours: 4 },
-    // Edebiyat öğretmeni -> 9-A TDE, 9-B TDE, 10-A TDE
+    
     { teacherIdx: 2, className: '9-A', subjectName: 'Türk Dili ve Edebiyatı', hours: 5 },
     { teacherIdx: 2, className: '9-B', subjectName: 'Türk Dili ve Edebiyatı', hours: 5 },
     { teacherIdx: 2, className: '10-A', subjectName: 'Türk Dili ve Edebiyatı', hours: 5 },
-    // Kimya öğretmeni -> tüm sınıflar
+    
     { teacherIdx: 3, className: '9-A', subjectName: 'Kimya', hours: 3 },
     { teacherIdx: 3, className: '9-B', subjectName: 'Kimya', hours: 3 },
     { teacherIdx: 3, className: '10-A', subjectName: 'Kimya', hours: 3 },
-    // Biyoloji öğretmeni -> tüm sınıflar
+    
     { teacherIdx: 4, className: '9-A', subjectName: 'Biyoloji', hours: 3 },
     { teacherIdx: 4, className: '9-B', subjectName: 'Biyoloji', hours: 3 },
     { teacherIdx: 4, className: '10-A', subjectName: 'Biyoloji', hours: 3 },
-    // Tarih öğretmeni -> tüm sınıflar
+    
     { teacherIdx: 5, className: '9-A', subjectName: 'Tarih', hours: 2 },
     { teacherIdx: 5, className: '9-B', subjectName: 'Tarih', hours: 2 },
     { teacherIdx: 5, className: '10-A', subjectName: 'Tarih', hours: 2 },
-    // Coğrafya öğretmeni -> tüm sınıflar
+    
     { teacherIdx: 6, className: '9-A', subjectName: 'Coğrafya', hours: 2 },
     { teacherIdx: 6, className: '9-B', subjectName: 'Coğrafya', hours: 2 },
     { teacherIdx: 6, className: '10-A', subjectName: 'Coğrafya', hours: 2 },
-    // İngilizce öğretmeni -> tüm sınıflar
+    
     { teacherIdx: 7, className: '9-A', subjectName: 'İngilizce', hours: 4 },
     { teacherIdx: 7, className: '9-B', subjectName: 'İngilizce', hours: 4 },
     { teacherIdx: 7, className: '10-A', subjectName: 'İngilizce', hours: 4 },
@@ -445,7 +426,6 @@ async function main() {
   }
   console.log(`✅ ${assignmentData.length} öğretmen ataması oluşturuldu`);
 
-  // ==================== 8. DERS SAATLERİ (TIME SLOTS) ====================
   const timeSlotData = [
     { slotNumber: 1, startTime: '08:30', endTime: '09:10' },
     { slotNumber: 2, startTime: '09:20', endTime: '10:00' },
@@ -479,7 +459,6 @@ async function main() {
   }
   console.log(`✅ ${Object.keys(timeSlots).length} ders saati oluşturuldu`);
 
-  // ==================== 9. NOT KATEGORİLERİ ====================
   const gradeCategoryData = [
     { name: 'Yazılı Sınav', code: 'EXAM', weight: 3.0 },
     { name: 'Sözlü', code: 'ORAL', weight: 1.0 },
@@ -506,26 +485,25 @@ async function main() {
   }
   console.log(`✅ ${gradeCategoryData.length} not kategorisi oluşturuldu`);
 
-  // ==================== 10. DERS PROGRAMI (9-A İÇİN ÖRNEK) ====================
   const timetableData = [
-    // Pazartesi
+    
     { day: DayOfWeek.MONDAY, slot: 1, subject: 'Matematik', teacher: 0, classroom: 'Derslik 101' },
     { day: DayOfWeek.MONDAY, slot: 2, subject: 'Matematik', teacher: 0, classroom: 'Derslik 101' },
     { day: DayOfWeek.MONDAY, slot: 3, subject: 'Fizik', teacher: 1, classroom: 'Fizik Lab' },
     { day: DayOfWeek.MONDAY, slot: 4, subject: 'Türk Dili ve Edebiyatı', teacher: 2, classroom: 'Derslik 101' },
-    // Salı
+    
     { day: DayOfWeek.TUESDAY, slot: 1, subject: 'Türk Dili ve Edebiyatı', teacher: 2, classroom: 'Derslik 101' },
     { day: DayOfWeek.TUESDAY, slot: 2, subject: 'Fizik', teacher: 1, classroom: 'Fizik Lab' },
     { day: DayOfWeek.TUESDAY, slot: 3, subject: 'Matematik', teacher: 0, classroom: 'Derslik 101' },
-    // Çarşamba
+    
     { day: DayOfWeek.WEDNESDAY, slot: 1, subject: 'Fizik', teacher: 1, classroom: 'Fizik Lab' },
     { day: DayOfWeek.WEDNESDAY, slot: 2, subject: 'Türk Dili ve Edebiyatı', teacher: 2, classroom: 'Derslik 101' },
     { day: DayOfWeek.WEDNESDAY, slot: 3, subject: 'Matematik', teacher: 0, classroom: 'Derslik 101' },
-    // Perşembe
+    
     { day: DayOfWeek.THURSDAY, slot: 1, subject: 'Matematik', teacher: 0, classroom: 'Derslik 101' },
     { day: DayOfWeek.THURSDAY, slot: 2, subject: 'Türk Dili ve Edebiyatı', teacher: 2, classroom: 'Derslik 101' },
     { day: DayOfWeek.THURSDAY, slot: 3, subject: 'Fizik', teacher: 1, classroom: 'Fizik Lab' },
-    // Cuma
+    
     { day: DayOfWeek.FRIDAY, slot: 1, subject: 'Matematik', teacher: 0, classroom: 'Derslik 101' },
     { day: DayOfWeek.FRIDAY, slot: 2, subject: 'Türk Dili ve Edebiyatı', teacher: 2, classroom: 'Derslik 101' },
     { day: DayOfWeek.FRIDAY, slot: 3, subject: 'Fizik', teacher: 1, classroom: 'Fizik Lab' },
@@ -562,23 +540,22 @@ async function main() {
   }
   console.log(`✅ ${timetableCount} ders programı girişi oluşturuldu (9-A)`);
 
-  // ==================== 10b. DERS PROGRAMI EK DERSLER (9-A İÇİN) ====================
   const timetableDataExtra = [
-    // Pazartesi ek dersler
+    
     { day: DayOfWeek.MONDAY, slot: 5, subject: 'Kimya', teacher: 3, classroom: 'Kimya Lab' },
     { day: DayOfWeek.MONDAY, slot: 6, subject: 'İngilizce', teacher: 7, classroom: 'Derslik 101' },
-    // Salı ek dersler
+    
     { day: DayOfWeek.TUESDAY, slot: 4, subject: 'Biyoloji', teacher: 4, classroom: 'Derslik 101' },
     { day: DayOfWeek.TUESDAY, slot: 5, subject: 'Tarih', teacher: 5, classroom: 'Derslik 101' },
     { day: DayOfWeek.TUESDAY, slot: 6, subject: 'İngilizce', teacher: 7, classroom: 'Derslik 101' },
-    // Çarşamba ek dersler
+    
     { day: DayOfWeek.WEDNESDAY, slot: 4, subject: 'Coğrafya', teacher: 6, classroom: 'Derslik 101' },
     { day: DayOfWeek.WEDNESDAY, slot: 5, subject: 'Kimya', teacher: 3, classroom: 'Kimya Lab' },
-    // Perşembe ek dersler
+    
     { day: DayOfWeek.THURSDAY, slot: 4, subject: 'Biyoloji', teacher: 4, classroom: 'Derslik 101' },
     { day: DayOfWeek.THURSDAY, slot: 5, subject: 'İngilizce', teacher: 7, classroom: 'Derslik 101' },
     { day: DayOfWeek.THURSDAY, slot: 6, subject: 'Tarih', teacher: 5, classroom: 'Derslik 101' },
-    // Cuma ek dersler
+    
     { day: DayOfWeek.FRIDAY, slot: 4, subject: 'Coğrafya', teacher: 6, classroom: 'Derslik 101' },
     { day: DayOfWeek.FRIDAY, slot: 5, subject: 'Kimya', teacher: 3, classroom: 'Kimya Lab' },
     { day: DayOfWeek.FRIDAY, slot: 6, subject: 'İngilizce', teacher: 7, classroom: 'Derslik 101' },
@@ -615,7 +592,6 @@ async function main() {
   }
   console.log(`✅ ${timetableExtraCount} ek ders programı girişi oluşturuldu (9-A)`);
 
-  // ==================== 11. DUYURULAR ====================
   const announcementData = [
     {
       title: '2025-2026 Eğitim Öğretim Yılına Hoş Geldiniz',
@@ -683,7 +659,6 @@ async function main() {
         },
       });
 
-      // Tüm sınıfları hedef olarak ekle
       for (const className of Object.keys(classes)) {
         await prisma.announcementClass.create({
           data: {
@@ -696,7 +671,6 @@ async function main() {
   }
   console.log(`✅ ${announcementData.length} duyuru oluşturuldu`);
 
-  // ==================== 12. ETKİNLİKLER ====================
   const eventData = [
     {
       title: '29 Ekim Cumhuriyet Bayramı Töreni',
@@ -774,8 +748,6 @@ async function main() {
   }
   console.log(`✅ ${eventData.length} etkinlik oluşturuldu`);
 
-  // ==================== 13. NOTLAR (GRADES) ====================
-  // Not kategorilerini yeniden oku (id'lere ihtiyacımız var)
   const gradeCategories: Record<string, any> = {};
   for (const gc of gradeCategoryData) {
     const cat = await prisma.gradeCategory.findUnique({
@@ -789,26 +761,25 @@ async function main() {
     if (cat) gradeCategories[gc.code] = cat;
   }
 
-  // 9-A sınıfındaki her öğrenci için Matematik, Fizik ve TDE notları
   const gradeEntries = [
-    // Matematik notları
+    
     { subjectName: 'Matematik', teacherIdx: 0, categoryCode: 'EXAM', description: '1. Yazılı Sınav', date: new Date('2025-10-25'), scores: [78, 92, 65, 88, 71] },
     { subjectName: 'Matematik', teacherIdx: 0, categoryCode: 'EXAM', description: '2. Yazılı Sınav', date: new Date('2025-12-15'), scores: [82, 88, 70, 91, 75] },
     { subjectName: 'Matematik', teacherIdx: 0, categoryCode: 'ORAL', description: 'Sözlü Notu', date: new Date('2025-11-10'), scores: [85, 90, 60, 95, 70] },
     { subjectName: 'Matematik', teacherIdx: 0, categoryCode: 'HOMEWORK', description: 'Ödev Notu', date: new Date('2025-11-20'), scores: [90, 95, 80, 85, 65] },
-    // Fizik notları
+    
     { subjectName: 'Fizik', teacherIdx: 1, categoryCode: 'EXAM', description: '1. Yazılı Sınav', date: new Date('2025-10-27'), scores: [70, 85, 55, 80, 68] },
     { subjectName: 'Fizik', teacherIdx: 1, categoryCode: 'EXAM', description: '2. Yazılı Sınav', date: new Date('2025-12-17'), scores: [75, 90, 60, 85, 72] },
     { subjectName: 'Fizik', teacherIdx: 1, categoryCode: 'ORAL', description: 'Sözlü Notu', date: new Date('2025-11-12'), scores: [80, 88, 65, 90, 75] },
     { subjectName: 'Fizik', teacherIdx: 1, categoryCode: 'PERFORMANCE', description: 'Performans Görevi', date: new Date('2025-12-01'), scores: [85, 92, 70, 88, 78] },
-    // Türk Dili ve Edebiyatı notları
+    
     { subjectName: 'Türk Dili ve Edebiyatı', teacherIdx: 2, categoryCode: 'EXAM', description: '1. Yazılı Sınav', date: new Date('2025-10-23'), scores: [82, 75, 90, 68, 85] },
     { subjectName: 'Türk Dili ve Edebiyatı', teacherIdx: 2, categoryCode: 'EXAM', description: '2. Yazılı Sınav', date: new Date('2025-12-13'), scores: [88, 80, 92, 72, 87] },
     { subjectName: 'Türk Dili ve Edebiyatı', teacherIdx: 2, categoryCode: 'ORAL', description: 'Sözlü Notu', date: new Date('2025-11-08'), scores: [90, 78, 95, 70, 88] },
-    // Kimya notları
+    
     { subjectName: 'Kimya', teacherIdx: 3, categoryCode: 'EXAM', description: '1. Yazılı Sınav', date: new Date('2025-10-28'), scores: [72, 80, 58, 85, 66] },
     { subjectName: 'Kimya', teacherIdx: 3, categoryCode: 'ORAL', description: 'Sözlü Notu', date: new Date('2025-11-15'), scores: [78, 85, 65, 90, 72] },
-    // İngilizce notları
+    
     { subjectName: 'İngilizce', teacherIdx: 7, categoryCode: 'EXAM', description: '1. Yazılı Sınav', date: new Date('2025-10-30'), scores: [88, 92, 75, 95, 80] },
     { subjectName: 'İngilizce', teacherIdx: 7, categoryCode: 'ORAL', description: 'Sözlü Notu', date: new Date('2025-11-18'), scores: [90, 95, 80, 92, 85] },
   ];
@@ -851,7 +822,6 @@ async function main() {
   }
   console.log(`✅ ${gradeCount} not girişi oluşturuldu`);
 
-  // ==================== 14. ÖDEVLER (ASSIGNMENTS) ====================
   const assignmentEntries = [
     {
       className: '9-A',
@@ -934,21 +904,20 @@ async function main() {
         },
       });
 
-      // Bazı öğrenciler için teslim kayıtları oluştur
       for (let i = 0; i < students.length; i++) {
         const isPastDue = ae.dueDate < new Date();
-        // İlk 3 öğrenci teslim etmiş, 4. geç teslim, 5. henüz teslim etmemiş
+        
         let status: SubmissionStatus;
         let submittedAt: Date | null = null;
         let score: number | null = null;
 
         if (i < 3 && isPastDue) {
           status = SubmissionStatus.GRADED;
-          submittedAt = new Date(ae.dueDate.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 gün önce
+          submittedAt = new Date(ae.dueDate.getTime() - 2 * 24 * 60 * 60 * 1000); 
           score = [85, 92, 70][i];
         } else if (i === 3 && isPastDue) {
           status = SubmissionStatus.LATE;
-          submittedAt = new Date(ae.dueDate.getTime() + 1 * 24 * 60 * 60 * 1000); // 1 gün sonra
+          submittedAt = new Date(ae.dueDate.getTime() + 1 * 24 * 60 * 60 * 1000); 
           score = null;
         } else {
           status = SubmissionStatus.PENDING;

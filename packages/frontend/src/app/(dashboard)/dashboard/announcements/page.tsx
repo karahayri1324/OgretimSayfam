@@ -26,10 +26,6 @@ import {
 import { formatRelativeDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-// ---------------------------------------------------------------------------
-// Types & constants
-// ---------------------------------------------------------------------------
-
 interface Announcement {
   id: string;
   title: string;
@@ -100,10 +96,6 @@ const ALL_CATEGORIES = ['GENERAL', 'EXAM', 'EVENT', 'URGENT'] as const;
 
 type TargetTab = 'all' | 'classes' | 'students';
 
-// ---------------------------------------------------------------------------
-// Category Badge Component
-// ---------------------------------------------------------------------------
-
 function CategoryBadge({ category }: { category: string }) {
   const cfg = categoryConfig[category] || categoryConfig.GENERAL;
   const isUrgent = category === 'URGENT';
@@ -117,10 +109,6 @@ function CategoryBadge({ category }: { category: string }) {
     </span>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Announcement Card Component
-// ---------------------------------------------------------------------------
 
 function AnnouncementCard({
   announcement,
@@ -161,7 +149,6 @@ function AnnouncementCard({
       `}
       onClick={handleClick}
     >
-      {/* Pin ribbon */}
       {a.isPinned && (
         <div className="absolute -top-0 -right-0 bg-primary-500 text-white px-2.5 py-1 rounded-bl-lg rounded-tr-xl text-xs font-medium flex items-center gap-1">
           <Pin className="w-3 h-3" />
@@ -170,10 +157,8 @@ function AnnouncementCard({
       )}
 
       <div className="p-5">
-        {/* Header row */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* Unread dot */}
             {isUnread && (
               <div className="mt-1.5 flex-shrink-0">
                 <span className="block w-2.5 h-2.5 rounded-full bg-primary-500 ring-2 ring-primary-200" />
@@ -196,7 +181,6 @@ function AnnouncementCard({
                 )}
               </div>
 
-              {/* Meta info */}
               <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                 <span className="font-medium text-gray-500">
                   {a.author?.firstName} {a.author?.lastName}
@@ -227,7 +211,6 @@ function AnnouncementCard({
             </div>
           </div>
 
-          {/* Action buttons + Expand icon */}
           <div className="flex items-center gap-1 flex-shrink-0 mt-1">
             {canManage && (
               <>
@@ -259,14 +242,12 @@ function AnnouncementCard({
           </div>
         </div>
 
-        {/* Preview (always show first line when collapsed) */}
         {!isExpanded && (
           <p className="mt-2 text-sm text-gray-500 line-clamp-2 pl-0">
             {a.content}
           </p>
         )}
 
-        {/* Expanded content */}
         {isExpanded && (
           <div className="mt-4 pt-3 border-t border-gray-100">
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{a.content}</p>
@@ -276,10 +257,6 @@ function AnnouncementCard({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Create Modal Component
-// ---------------------------------------------------------------------------
 
 function CreateAnnouncementModal({
   onClose,
@@ -309,17 +286,16 @@ function CreateAnnouncementModal({
     api
       .get('/classes')
       .then(({ data }) => setClasses(data.data || []))
-      .catch(() => { console.warn('Siniflar yuklenemedi'); });
+      .catch(() => {  });
   }, []);
 
-  // Fetch students when student tab is selected
   useEffect(() => {
     if (targetTab === 'students' && students.length === 0) {
       setLoadingStudents(true);
       api
         .get('/users?role=STUDENT')
         .then(({ data }) => setStudents(data.data || []))
-        .catch(() => { console.warn('Ogrenciler yuklenemedi'); })
+        .catch(() => {  })
         .finally(() => setLoadingStudents(false));
     }
   }, [targetTab, students.length]);
@@ -390,7 +366,6 @@ function CreateAnnouncementModal({
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal header */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
@@ -404,7 +379,6 @@ function CreateAnnouncementModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Baslik</label>
             <input
@@ -416,7 +390,6 @@ function CreateAnnouncementModal({
             />
           </div>
 
-          {/* Content */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Icerik</label>
             <textarea
@@ -428,7 +401,6 @@ function CreateAnnouncementModal({
             />
           </div>
 
-          {/* Category selector */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
             <div className="grid grid-cols-2 gap-2">
@@ -456,7 +428,6 @@ function CreateAnnouncementModal({
             </div>
           </div>
 
-          {/* Pin toggle */}
           <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
             <div className="flex items-center gap-2">
               <Pin className="w-4 h-4 text-gray-500" />
@@ -479,7 +450,6 @@ function CreateAnnouncementModal({
             </button>
           </div>
 
-          {/* Target section with tabs */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Hedef</label>
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-3">
@@ -511,7 +481,6 @@ function CreateAnnouncementModal({
               ))}
             </div>
 
-            {/* Classes selection */}
             {targetTab === 'classes' && classes.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {classes.map((cls) => {
@@ -533,7 +502,6 @@ function CreateAnnouncementModal({
               </div>
             )}
 
-            {/* Students selection */}
             {targetTab === 'students' && (
               <div>
                 <div className="relative mb-2">
@@ -593,7 +561,6 @@ function CreateAnnouncementModal({
             )}
           </div>
 
-          {/* Schedule toggle */}
           <div>
             <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
@@ -632,7 +599,6 @@ function CreateAnnouncementModal({
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Iptal
@@ -647,10 +613,6 @@ function CreateAnnouncementModal({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Edit Modal Component
-// ---------------------------------------------------------------------------
 
 function EditAnnouncementModal({
   announcement,
@@ -689,7 +651,6 @@ function EditAnnouncementModal({
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal header */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
@@ -703,7 +664,6 @@ function EditAnnouncementModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Baslik</label>
             <input
@@ -715,7 +675,6 @@ function EditAnnouncementModal({
             />
           </div>
 
-          {/* Content */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Icerik</label>
             <textarea
@@ -727,7 +686,6 @@ function EditAnnouncementModal({
             />
           </div>
 
-          {/* Pin toggle */}
           <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
             <div className="flex items-center gap-2">
               <Pin className="w-4 h-4 text-gray-500" />
@@ -750,7 +708,6 @@ function EditAnnouncementModal({
             </button>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Iptal
@@ -765,10 +722,6 @@ function EditAnnouncementModal({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Delete Confirmation Modal Component
-// ---------------------------------------------------------------------------
 
 function DeleteAnnouncementModal({
   announcement,
@@ -801,7 +754,6 @@ function DeleteAnnouncementModal({
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal header */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
@@ -828,7 +780,6 @@ function DeleteAnnouncementModal({
             </p>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Iptal
@@ -848,10 +799,6 @@ function DeleteAnnouncementModal({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Main Page Component
-// ---------------------------------------------------------------------------
 
 export default function AnnouncementsPage() {
   const { user } = useAuthStore();
@@ -880,7 +827,7 @@ export default function AnnouncementsPage() {
       const { data } = await api.get('/announcements');
       const list: Announcement[] = data.data || [];
       setAnnouncements(list);
-      // Initialize read IDs from server data
+      
       const readSet = new Set<string>();
       list.forEach((a) => {
         if (a.isRead) readSet.add(a.id);
@@ -903,14 +850,11 @@ export default function AnnouncementsPage() {
       setReadIds((prev) => new Set(prev).add(id));
       try {
         await api.post(`/announcements/${id}/read`);
-      } catch {
-        // Silently fail - UI already updated optimistically
-      }
+      } catch { }
     },
     [readIds],
   );
 
-  // Filtered announcements
   const filtered = useMemo(() => {
     let list = announcements;
 
@@ -931,21 +875,15 @@ export default function AnnouncementsPage() {
     return list;
   }, [announcements, searchQuery, categoryFilter]);
 
-  // Separate pinned and unpinned
   const pinnedAnnouncements = useMemo(() => filtered.filter((a) => a.isPinned), [filtered]);
   const regularAnnouncements = useMemo(() => filtered.filter((a) => !a.isPinned), [filtered]);
 
   const unreadCount = useMemo(() => announcements.filter((a) => !readIds.has(a.id) && a.isRead === false).length, [announcements, readIds]);
 
-  // Merge read status with announcements for display
   const getDisplayAnnouncement = (a: Announcement): Announcement => ({
     ...a,
     isRead: readIds.has(a.id) || a.isRead === true,
   });
-
-  // ---------------------------------------------------------------------------
-  // Loading state
-  // ---------------------------------------------------------------------------
 
   if (loading) {
     return (
@@ -959,13 +897,8 @@ export default function AnnouncementsPage() {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
@@ -991,9 +924,7 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
-      {/* Search & Filter bar */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -1013,7 +944,6 @@ export default function AnnouncementsPage() {
           )}
         </div>
 
-        {/* Category filter chips */}
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
           <button
@@ -1046,7 +976,6 @@ export default function AnnouncementsPage() {
         </div>
       </div>
 
-      {/* Announcements list */}
       {filtered.length === 0 ? (
         <div className="card text-center py-16">
           <Bell className="w-14 h-14 mx-auto mb-4 text-gray-200" />
@@ -1067,7 +996,6 @@ export default function AnnouncementsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Pinned section */}
           {pinnedAnnouncements.length > 0 && (
             <>
               <div className="flex items-center gap-2 text-xs font-semibold text-primary-600 uppercase tracking-wider">
@@ -1091,7 +1019,6 @@ export default function AnnouncementsPage() {
             </>
           )}
 
-          {/* Regular section */}
           {regularAnnouncements.length > 0 && (
             <>
               {pinnedAnnouncements.length > 0 && (
@@ -1119,7 +1046,6 @@ export default function AnnouncementsPage() {
         </div>
       )}
 
-      {/* Create modal */}
       {showModal && (
         <CreateAnnouncementModal
           onClose={() => setShowModal(false)}
@@ -1127,7 +1053,6 @@ export default function AnnouncementsPage() {
         />
       )}
 
-      {/* Edit modal */}
       {editingAnnouncement && (
         <EditAnnouncementModal
           announcement={editingAnnouncement}
@@ -1136,7 +1061,6 @@ export default function AnnouncementsPage() {
         />
       )}
 
-      {/* Delete confirmation modal */}
       {deletingAnnouncement && (
         <DeleteAnnouncementModal
           announcement={deletingAnnouncement}

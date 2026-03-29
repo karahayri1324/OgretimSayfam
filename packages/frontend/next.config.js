@@ -3,9 +3,12 @@ const nextConfig = {
   output: 'standalone',
   compress: true,
   images: {
-    domains: (process.env.IMAGE_DOMAINS || 'localhost').split(','),
+    remotePatterns: (process.env.IMAGE_DOMAINS || 'localhost').split(',').map((hostname) => ({
+      protocol: hostname === 'localhost' ? 'http' : 'https',
+      hostname: hostname.trim(),
+    })),
   },
-  // Disable X-Powered-By header
+  
   poweredByHeader: false,
   async headers() {
     return [
@@ -22,13 +25,13 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: process.env.NODE_ENV === 'production'
-              ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.ogretimsayfam.com; frame-ancestors 'none';"
+              ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.ogretimsayfam.com; frame-ancestors 'none';"
               : "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' http://localhost:3001 https://*.ogretimsayfam.com; frame-ancestors 'none';",
           },
           {
             key: 'Permissions-Policy',
             value:
-              'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+              'camera=(), microphone=(), geolocation=(), browsing-topics=()',
           },
         ],
       },

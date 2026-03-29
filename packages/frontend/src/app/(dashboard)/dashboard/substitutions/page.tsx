@@ -60,7 +60,6 @@ export default function SubstitutionsPage() {
         )}
       </div>
 
-      {/* Date Controls */}
       <div className="flex items-center gap-2">
         <button onClick={() => changeDate(-1)} className="p-2 rounded-lg hover:bg-gray-100">
           <ChevronLeft className="w-4 h-4" />
@@ -71,7 +70,6 @@ export default function SubstitutionsPage() {
         </button>
       </div>
 
-      {/* Substitutions List */}
       {substitutions.length === 0 ? (
         <div className="card text-center py-12">
           <UserCheck className="w-12 h-12 mx-auto mb-3 text-gray-300" />
@@ -118,7 +116,6 @@ export default function SubstitutionsPage() {
         </div>
       )}
 
-      {/* Add Modal */}
       {showAddModal && (
         <AddSubstitutionModal
           date={selectedDate}
@@ -170,7 +167,7 @@ function AddSubstitutionModal({ date, onClose, onSaved }: {
     if (entry?.timeSlotId) {
       api.get(`/substitutions/available-teachers?date=${date}&timeSlotId=${entry.timeSlotId}`)
         .then(({ data }) => setAvailableTeachers(data.data || []))
-        .catch(() => { console.warn('Uygun ogretmenler yuklenemedi'); });
+        .catch(() => {  });
     }
   }, [selectedEntryId, date, timetableEntries]);
 

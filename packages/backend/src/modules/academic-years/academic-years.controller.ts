@@ -32,8 +32,6 @@ export class AcademicYearsController {
     return { success: true, data: await this.academicYearsService.create(schoolId, dto) };
   }
 
-  // --- Term routes (specific paths BEFORE parameterized :id routes) ---
-
   @Put('terms/:termId')
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Dönem güncelle' })
@@ -54,8 +52,6 @@ export class AcademicYearsController {
   async setCurrentTerm(@Param('termId') termId: string) {
     return { success: true, data: await this.academicYearsService.setCurrentTerm(termId) };
   }
-
-  // --- Parameterized :id routes ---
 
   @Get(':id')
   @ApiOperation({ summary: 'Akademik yıl detayı' })

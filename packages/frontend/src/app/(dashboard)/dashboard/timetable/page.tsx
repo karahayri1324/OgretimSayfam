@@ -23,7 +23,6 @@ export default function TimetablePage() {
         <h1 className="text-2xl font-bold text-gray-900">Ders Programı</h1>
       </div>
 
-      {/* Tab Navigation */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
           <button
@@ -66,7 +65,6 @@ export default function TimetablePage() {
         </nav>
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'view' && <TimetableView />}
       {activeTab === 'assignments' && isAdmin && <AssignmentsManager />}
       {activeTab === 'generate' && isAdmin && <FetGenerator />}
@@ -74,28 +72,19 @@ export default function TimetablePage() {
   );
 }
 
-// ==================== DERS PROGRAMI GÖRÜNTÜLEME ====================
-
-// Maps JS getDay() (0=Sun) to our DAYS array index (0=Mon)
 const JS_DAY_TO_DAYS_INDEX: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
 
-/**
- * Parse "HH:MM" to minutes since midnight for time comparisons.
- */
 function parseTimeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 }
 
-/**
- * Determine if a hex color is "dark" so we can pick white or dark text.
- */
 function isColorDark(hex: string): boolean {
   const c = hex.replace('#', '');
   const r = parseInt(c.substring(0, 2), 16);
   const g = parseInt(c.substring(2, 4), 16);
   const b = parseInt(c.substring(4, 6), 16);
-  // Perceived brightness formula
+  
   return (r * 299 + g * 587 + b * 114) / 1000 < 150;
 }
 
@@ -111,7 +100,6 @@ function TimetableView() {
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
 
-  // Update current time every 30 seconds for the live indicator
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(timer);
@@ -131,7 +119,7 @@ function TimetableView() {
           const { data } = await api.get(`/timetable/class/${user.studentClassId}`);
           setEntries(data.data || []);
         } else {
-          // Admin - load classes and teachers
+          
           const [clsRes, usersRes] = await Promise.all([
             api.get('/classes'),
             api.get('/users?role=TEACHER&limit=100'),
@@ -166,15 +154,10 @@ function TimetableView() {
   const getEntry = (day: string, slotId: string) =>
     entries.find((e: any) => e.dayOfWeek === day && e.timeSlotId === slotId);
 
-  // ---- Current time helpers ----
-  const todayDayIndex = JS_DAY_TO_DAYS_INDEX[now.getDay()] ?? -1; // -1 = weekend
+  const todayDayIndex = JS_DAY_TO_DAYS_INDEX[now.getDay()] ?? -1; 
   const todayDAY = DAYS[todayDayIndex] as string | undefined;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  /**
-   * For a given time slot, return the vertical percentage (0-100) of the red
-   * current-time indicator line, or null if current time is outside the slot.
-   */
   const currentTimePercent = (slot: any): number | null => {
     if (todayDayIndex === -1) return null;
     const start = parseTimeToMinutes(slot.startTime);
@@ -183,9 +166,6 @@ function TimetableView() {
     return ((nowMinutes - start) / (end - start)) * 100;
   };
 
-  /**
-   * Check whether a given day + slot is the "current" class (i.e. happening right now).
-   */
   const isCurrentSlot = (day: string, slot: any): boolean => {
     if (day !== todayDAY) return false;
     const start = parseTimeToMinutes(slot.startTime);
@@ -205,7 +185,6 @@ function TimetableView() {
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
       {isAdmin && (
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
@@ -263,7 +242,6 @@ function TimetableView() {
         </div>
       )}
 
-      {/* Timetable Grid */}
       <div className="card overflow-x-auto !p-0">
         <table className="w-full min-w-[700px] border-collapse">
           <thead>
@@ -307,7 +285,6 @@ function TimetableView() {
                 const timePercent = currentTimePercent(slot);
                 return (
                   <tr key={slot.id} className="border-t border-gray-100">
-                    {/* Time slot column - period number prominent */}
                     <td className="px-3 py-2 bg-gray-50/60 border-r border-gray-100">
                       <div className="flex items-center gap-2">
                         <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold shrink-0">
@@ -331,7 +308,6 @@ function TimetableView() {
                             isTodayCol ? 'bg-primary-50/40' : ''
                           }`}
                         >
-                          {/* Current time red line */}
                           {isTodayCol && timePercent !== null && (
                             <div
                               className="absolute left-0 right-0 z-10 pointer-events-none"
@@ -428,8 +404,6 @@ function TimetableView() {
   );
 }
 
-// ==================== ÖĞRETMEN ATAMALARI ====================
-
 function AssignmentsManager() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -438,7 +412,6 @@ function AssignmentsManager() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // New assignment form
   const [formTeacherId, setFormTeacherId] = useState('');
   const [formClassId, setFormClassId] = useState('');
   const [formSubjectId, setFormSubjectId] = useState('');
@@ -510,7 +483,6 @@ function AssignmentsManager() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         <div className="card !p-4 text-center">
           <div className="text-2xl font-bold text-primary-600">{teachers.length}</div>
@@ -530,7 +502,6 @@ function AssignmentsManager() {
         </div>
       </div>
 
-      {/* Assignments Table */}
       <div className="card !p-0 overflow-hidden">
         <table className="w-full">
           <thead>
@@ -567,7 +538,6 @@ function AssignmentsManager() {
         </table>
       </div>
 
-      {/* Add Assignment Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
@@ -634,8 +604,6 @@ function AssignmentsManager() {
   );
 }
 
-// ==================== FET DERS PROGRAMI OLUŞTURMA ====================
-
 function FetGenerator() {
   const [fetHealth, setFetHealth] = useState<{ ok: boolean; fetClAvailable: boolean } | null>(null);
   const [preview, setPreview] = useState<any>(null);
@@ -646,7 +614,6 @@ function FetGenerator() {
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
-  // Constraints state
   const [maxHoursDaily, setMaxHoursDaily] = useState(8);
   const [teacherMaxHours, setTeacherMaxHours] = useState(6);
   const [teacherMaxGaps, setTeacherMaxGaps] = useState(2);
@@ -668,7 +635,6 @@ function FetGenerator() {
 
   useEffect(() => { loadInitData(); }, [loadInitData]);
 
-  // Poll job status
   useEffect(() => {
     if (!jobId || jobStatus === 'completed' || jobStatus === 'failed') return;
 
@@ -687,9 +653,7 @@ function FetGenerator() {
           setGenerating(false);
           toast.error('Ders programı oluşturulamadı: ' + (data.data?.error || 'Bilinmeyen hata'));
         }
-      } catch (err) {
-        console.warn('Ders programi durum sorgusu hatasi:', err instanceof Error ? err.message : 'Bilinmeyen hata');
-      }
+      } catch { }
     }, 2000);
 
     return () => clearInterval(interval);
@@ -707,7 +671,7 @@ function FetGenerator() {
     setJobStatus(null);
 
     try {
-      // Build constraints
+      
       const constraints: any = {
         teacherMaxHoursDaily: preview.teachers?.map((t: any) => ({
           teacherName: t.name,
@@ -723,7 +687,6 @@ function FetGenerator() {
         })),
       };
 
-      // Try sync generation first (faster for small schools)
       if (preview.activities < 100) {
         const { data } = await api.post('/timetable/fet/generate-sync', { constraints });
         if (data.success) {
@@ -734,7 +697,7 @@ function FetGenerator() {
         }
         setGenerating(false);
       } else {
-        // Async generation for larger schools
+        
         const { data } = await api.post('/timetable/fet/generate', { constraints });
         if (data.data?.jobId) {
           setJobId(data.data.jobId);
@@ -787,7 +750,6 @@ function FetGenerator() {
 
   return (
     <div className="space-y-6">
-      {/* FET Status */}
       <div className="card !p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -809,7 +771,6 @@ function FetGenerator() {
         </div>
       </div>
 
-      {/* Data Summary */}
       {preview && (
         <div className="card">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Mevcut Veriler</h3>
@@ -855,7 +816,6 @@ function FetGenerator() {
         </div>
       )}
 
-      {/* Constraints */}
       <div className="card">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">
           <Settings className="w-4 h-4 inline mr-1" />
@@ -898,7 +858,6 @@ function FetGenerator() {
         </div>
       </div>
 
-      {/* Generate Button */}
       <div className="flex items-center gap-4">
         <button
           onClick={handleGenerate}
@@ -926,7 +885,6 @@ function FetGenerator() {
         )}
       </div>
 
-      {/* Generation Result */}
       {generationResult && (
         <div className="space-y-4">
           <div className="card border-green-200 bg-green-50">
@@ -960,12 +918,10 @@ function FetGenerator() {
             </div>
           </div>
 
-          {/* Preview of generated timetable */}
           {generationResult.entries?.length > 0 && (
             <FetResultPreview entries={generationResult.entries} />
           )}
 
-          {/* Soft conflicts */}
           {generationResult.softConflicts?.length > 0 && (
             <div className="card border-yellow-200 bg-yellow-50">
               <h4 className="text-sm font-semibold text-yellow-800 mb-2">
@@ -985,10 +941,8 @@ function FetGenerator() {
   );
 }
 
-// ==================== FET SONUÇ ÖNİZLEME ====================
-
 function FetResultPreview({ entries }: { entries: any[] }) {
-  // Group by class
+  
   const classTimetables = new Map<string, any[]>();
   for (const entry of entries) {
     const className = entry.students || entry.class || 'Bilinmeyen';
@@ -1003,7 +957,6 @@ function FetResultPreview({ entries }: { entries: any[] }) {
 
   const classEntries = classTimetables.get(selectedClass) || [];
 
-  // Build grid
   const getEntry = (dayIdx: number, hourIdx: number) =>
     classEntries.find((e: any) => e.dayIndex === dayIdx && e.hourIndex === hourIdx);
 

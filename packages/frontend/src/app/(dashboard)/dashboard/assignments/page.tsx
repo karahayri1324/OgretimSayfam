@@ -28,10 +28,6 @@ import {
 import { formatDate, formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
-
 const SUBJECT_COLORS = [
   '#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c',
   '#0891b2', '#ca8a04', '#be185d', '#4f46e5', '#059669',
@@ -51,10 +47,6 @@ const SORT_OPTIONS = [
   { value: 'subject', label: 'Ders' },
   { value: 'status', label: 'Durum' },
 ];
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
 
 function getSubjectColor(name: string, apiColor?: string | null): string {
   if (apiColor) return apiColor;
@@ -81,10 +73,6 @@ function getAssignmentStatus(a: any): string {
   if (daysLeft < 0) return 'OVERDUE';
   return 'PENDING';
 }
-
-/* ------------------------------------------------------------------ */
-/*  Due Date Badge                                                     */
-/* ------------------------------------------------------------------ */
 
 function DueDateBadge({ dueDate, status }: { dueDate: string; status: string }) {
   if (status === 'GRADED') {
@@ -138,10 +126,6 @@ function DueDateBadge({ dueDate, status }: { dueDate: string; status: string }) 
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Delete Confirmation Modal                                          */
-/* ------------------------------------------------------------------ */
-
 function DeleteConfirmModal({
   title,
   message,
@@ -189,10 +173,6 @@ function DeleteConfirmModal({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Assignment Detail Modal                                            */
-/* ------------------------------------------------------------------ */
-
 function AssignmentDetailModal({
   assignment,
   onClose,
@@ -213,7 +193,6 @@ function AssignmentDetailModal({
         className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -235,9 +214,7 @@ function AssignmentDetailModal({
           <h2 className="text-xl font-bold text-gray-900 mt-3">{assignment.title}</h2>
         </div>
 
-        {/* Body */}
         <div className="p-6 space-y-5">
-          {/* Status & Due Date */}
           <div className="flex items-center justify-between">
             <DueDateBadge dueDate={assignment.dueDate} status={status} />
             <span className="text-sm text-gray-500">
@@ -245,7 +222,6 @@ function AssignmentDetailModal({
             </span>
           </div>
 
-          {/* Description */}
           {assignment.description && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Aciklama</h3>
@@ -255,7 +231,6 @@ function AssignmentDetailModal({
             </div>
           )}
 
-          {/* Class Info */}
           {assignment.class?.name && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Users className="w-4 h-4" />
@@ -263,7 +238,6 @@ function AssignmentDetailModal({
             </div>
           )}
 
-          {/* Score & Feedback (if graded) */}
           {submission?.status === 'GRADED' && (
             <div className="bg-purple-50 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -282,7 +256,6 @@ function AssignmentDetailModal({
             </div>
           )}
 
-          {/* Submission info */}
           {submission?.submittedAt && (
             <div className="text-xs text-gray-400">
               Teslim tarihi: {formatDateTime(submission.submittedAt)}
@@ -290,7 +263,6 @@ function AssignmentDetailModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-gray-100">
           <button onClick={onClose} className="btn-secondary w-full">
             Kapat
@@ -300,10 +272,6 @@ function AssignmentDetailModal({
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Student Assignment Card                                            */
-/* ------------------------------------------------------------------ */
 
 function StudentAssignmentCard({
   assignment,
@@ -336,7 +304,6 @@ function StudentAssignmentCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Subject */}
           <div className="flex items-center gap-2 mb-2">
             <div
               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -347,10 +314,8 @@ function StudentAssignmentCard({
             </span>
           </div>
 
-          {/* Title */}
           <h3 className="text-base font-bold text-gray-900 mb-1">{assignment.title}</h3>
 
-          {/* Description (truncated) */}
           {assignment.description && (
             <div>
               <p className={`text-sm text-gray-500 ${!expanded ? 'line-clamp-2' : ''}`}>
@@ -370,14 +335,12 @@ function StudentAssignmentCard({
             </div>
           )}
 
-          {/* Due date */}
           <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
             <Calendar className="w-3.5 h-3.5" />
             <span>Son tarih: {formatDate(assignment.dueDate)}</span>
           </div>
         </div>
 
-        {/* Right side: Status & Score */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <DueDateBadge dueDate={assignment.dueDate} status={status} />
           {submission?.status === 'GRADED' && (
@@ -392,17 +355,12 @@ function StudentAssignmentCard({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Student View                                                       */
-/* ------------------------------------------------------------------ */
-
 function StudentView() {
   const { user } = useAuthStore();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
 
-  // Filters
   const [filterSubject, setFilterSubject] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [sortBy, setSortBy] = useState('dueDate');
@@ -425,7 +383,6 @@ function StudentView() {
     if (user) fetchAssignments();
   }, [user]);
 
-  // Extract unique subjects
   const subjects = useMemo(() => {
     const map = new Map<string, string>();
     for (const a of assignments) {
@@ -434,21 +391,17 @@ function StudentView() {
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b, 'tr'));
   }, [assignments]);
 
-  // Filtered and sorted assignments
   const filteredAssignments = useMemo(() => {
     let result = [...assignments];
 
-    // Filter by subject
     if (filterSubject !== 'ALL') {
       result = result.filter((a) => a.subject?.name === filterSubject);
     }
 
-    // Filter by status
     if (filterStatus !== 'ALL') {
       result = result.filter((a) => getAssignmentStatus(a) === filterStatus);
     }
 
-    // Sort
     result.sort((a, b) => {
       if (sortBy === 'dueDate') {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
@@ -467,7 +420,6 @@ function StudentView() {
     return result;
   }, [assignments, filterSubject, filterStatus, sortBy]);
 
-  // Stats
   const stats = useMemo(() => {
     let pending = 0;
     let submitted = 0;
@@ -493,7 +445,6 @@ function StudentView() {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card !p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -533,7 +484,6 @@ function StudentView() {
         </div>
       </div>
 
-      {/* Filter Bar */}
       <div className="card !p-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -541,7 +491,6 @@ function StudentView() {
             <span className="font-medium">Filtre:</span>
           </div>
 
-          {/* Subject filter */}
           <select
             className="input !w-auto min-w-[140px]"
             value={filterSubject}
@@ -553,7 +502,6 @@ function StudentView() {
             ))}
           </select>
 
-          {/* Status filter */}
           <select
             className="input !w-auto min-w-[140px]"
             value={filterStatus}
@@ -564,7 +512,6 @@ function StudentView() {
             ))}
           </select>
 
-          {/* Sort */}
           <div className="flex items-center gap-2 ml-auto">
             <ArrowUpDown className="w-4 h-4 text-gray-400" />
             <select
@@ -580,7 +527,6 @@ function StudentView() {
         </div>
       </div>
 
-      {/* Assignment Cards */}
       <div className="space-y-3">
         {filteredAssignments.map((a) => (
           <StudentAssignmentCard
@@ -608,7 +554,6 @@ function StudentView() {
         </div>
       )}
 
-      {/* Detail Modal */}
       {selectedAssignment && (
         <AssignmentDetailModal
           assignment={selectedAssignment}
@@ -618,10 +563,6 @@ function StudentView() {
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Teacher: Submissions Modal (with grading)                          */
-/* ------------------------------------------------------------------ */
 
 function SubmissionsModal({
   assignmentId,
@@ -749,7 +690,6 @@ function SubmissionsModal({
                                   : 'Bekliyor'}
                           </span>
 
-                          {/* Grade button - show for SUBMITTED or LATE submissions, or re-grade for GRADED */}
                           {(sub.status === 'SUBMITTED' || sub.status === 'LATE' || sub.status === 'GRADED') && (
                             <button
                               onClick={() => {
@@ -772,7 +712,6 @@ function SubmissionsModal({
                         </div>
                       </div>
 
-                      {/* Inline grading form */}
                       {gradingSubmissionId === sub.id && (
                         <div className="px-3 pb-3 pt-1 border-t border-gray-100">
                           <div className="bg-white rounded-lg p-3 space-y-3">
@@ -828,7 +767,6 @@ function SubmissionsModal({
                         </div>
                       )}
 
-                      {/* Show existing feedback if graded and not in edit mode */}
                       {sub.status === 'GRADED' && sub.feedback && gradingSubmissionId !== sub.id && (
                         <div className="px-3 pb-3 pt-1 border-t border-gray-100">
                           <p className="text-xs text-gray-500">
@@ -854,10 +792,6 @@ function SubmissionsModal({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Teacher: Create Assignment Modal                                   */
-/* ------------------------------------------------------------------ */
-
 function CreateAssignmentModal({
   classes,
   subjects,
@@ -878,7 +812,6 @@ function CreateAssignmentModal({
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // We need a termId - fetch current term
   const [termId, setTermId] = useState<string>('');
   const [termsLoading, setTermsLoading] = useState(true);
 
@@ -892,7 +825,7 @@ function CreateAssignmentModal({
             setTermId(list[0].termId);
           }
         })
-        .catch(() => { console.warn('Donemler yuklenemedi'); })
+        .catch(() => {  })
         .finally(() => setTermsLoading(false));
     } else {
       setTermsLoading(false);
@@ -1008,10 +941,6 @@ function CreateAssignmentModal({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Teacher: Edit Assignment Modal                                     */
-/* ------------------------------------------------------------------ */
-
 function EditAssignmentModal({
   assignment,
   onClose,
@@ -1113,10 +1042,6 @@ function EditAssignmentModal({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Teacher: Assignment Card                                           */
-/* ------------------------------------------------------------------ */
-
 function TeacherAssignmentCard({
   assignment,
   onViewSubmissions,
@@ -1146,7 +1071,6 @@ function TeacherAssignmentCard({
     <div className={`bg-white rounded-xl shadow-sm border p-5 ${cardBorder}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Subject + Class */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-1.5">
               <div
@@ -1162,10 +1086,8 @@ function TeacherAssignmentCard({
             )}
           </div>
 
-          {/* Title */}
           <h3 className="text-base font-bold text-gray-900 mb-1">{assignment.title}</h3>
 
-          {/* Description (truncated) */}
           {assignment.description && (
             <p className={`text-sm text-gray-500 ${!expanded ? 'line-clamp-2' : ''}`}>
               {assignment.description}
@@ -1180,7 +1102,6 @@ function TeacherAssignmentCard({
             </button>
           )}
 
-          {/* Due date */}
           <div className="flex items-center gap-4 mt-3 flex-wrap">
             <div className="flex items-center gap-1.5 text-xs text-gray-400">
               <Calendar className="w-3.5 h-3.5" />
@@ -1196,7 +1117,6 @@ function TeacherAssignmentCard({
           </div>
         </div>
 
-        {/* Right side */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <button
             onClick={onViewSubmissions}
@@ -1227,10 +1147,6 @@ function TeacherAssignmentCard({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Teacher View                                                       */
-/* ------------------------------------------------------------------ */
-
 function TeacherView() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1244,7 +1160,6 @@ function TeacherView() {
   const [editModal, setEditModal] = useState<any | null>(null);
   const [deleteModal, setDeleteModal] = useState<any | null>(null);
 
-  // Filters
   const [filterSubject, setFilterSubject] = useState('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
   const [sortBy, setSortBy] = useState('dueDate');
@@ -1269,15 +1184,12 @@ function TeacherView() {
         ]);
         setClasses(classRes.data.data || []);
         setSubjects(subjectRes.data.data || []);
-      } catch {
-        // silently fail - filters won't work but assignments will still show
-      }
+      } catch { }
     };
     fetchInit();
     fetchAssignments();
   }, [fetchAssignments]);
 
-  // Delete handler
   const handleDeleteAssignment = async (assignmentId: string) => {
     try {
       await api.delete(`/assignments/${assignmentId}`);
@@ -1288,7 +1200,6 @@ function TeacherView() {
     }
   };
 
-  // Extract unique subjects/classes from assignments
   const assignmentSubjects = useMemo(() => {
     const map = new Map<string, string>();
     for (const a of assignments) {
@@ -1305,7 +1216,6 @@ function TeacherView() {
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b, 'tr'));
   }, [assignments]);
 
-  // Filtered and sorted
   const filteredAssignments = useMemo(() => {
     let result = [...assignments];
 
@@ -1342,7 +1252,6 @@ function TeacherView() {
 
   return (
     <div className="space-y-6">
-      {/* Create button */}
       <div className="flex items-center justify-end">
         <button
           onClick={() => setShowCreateModal(true)}
@@ -1353,7 +1262,6 @@ function TeacherView() {
         </button>
       </div>
 
-      {/* Filter Bar */}
       <div className="card !p-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -1361,7 +1269,6 @@ function TeacherView() {
             <span className="font-medium">Filtre:</span>
           </div>
 
-          {/* Class filter */}
           <select
             className="input !w-auto min-w-[140px]"
             value={filterClass}
@@ -1373,7 +1280,6 @@ function TeacherView() {
             ))}
           </select>
 
-          {/* Subject filter */}
           <select
             className="input !w-auto min-w-[140px]"
             value={filterSubject}
@@ -1385,7 +1291,6 @@ function TeacherView() {
             ))}
           </select>
 
-          {/* Sort */}
           <div className="flex items-center gap-2 ml-auto">
             <ArrowUpDown className="w-4 h-4 text-gray-400" />
             <select
@@ -1401,7 +1306,6 @@ function TeacherView() {
         </div>
       </div>
 
-      {/* Assignment Cards */}
       <div className="space-y-3">
         {filteredAssignments.map((a) => (
           <TeacherAssignmentCard
@@ -1431,7 +1335,6 @@ function TeacherView() {
         </div>
       )}
 
-      {/* Modals */}
       {showCreateModal && (
         <CreateAssignmentModal
           classes={classes}
@@ -1472,17 +1375,12 @@ function TeacherView() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main Page                                                          */
-/* ------------------------------------------------------------------ */
-
 export default function AssignmentsPage() {
   const { user } = useAuthStore();
   const isTeacher = user?.role === 'TEACHER';
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
           <BookOpen className="w-5 h-5 text-primary-600" />
@@ -1497,7 +1395,6 @@ export default function AssignmentsPage() {
         </div>
       </div>
 
-      {/* Content by role */}
       {isTeacher ? <TeacherView /> : <StudentView />}
     </div>
   );

@@ -110,7 +110,6 @@ export default function ClassroomsPage() {
         </button>
       </div>
 
-      {/* Type Filter */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => setFilterType('')}
@@ -192,7 +191,6 @@ export default function ClassroomsPage() {
         </div>
       )}
 
-      {/* Create / Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
@@ -250,7 +248,6 @@ export default function ClassroomsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">

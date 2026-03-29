@@ -84,16 +84,33 @@ export class AttendanceService {
   }
 
   async getStudentStats(studentProfileId: string) {
-    const total = await this.prisma.attendance.count({ where: { studentProfileId } });
-    const present = await this.prisma.attendance.count({ where: { studentProfileId, status: 'PRESENT' } });
-    const absent = await this.prisma.attendance.count({ where: { studentProfileId, status: 'ABSENT' } });
-    const late = await this.prisma.attendance.count({ where: { studentProfileId, status: 'LATE' } });
-    const excused = await this.prisma.attendance.count({ where: { studentProfileId, status: 'EXCUSED' } });
+    
+    const grouped = await this.prisma.attendance.groupBy({
+      by: ['status'],
+      where: { studentProfileId },
+      _count: { status: true },
+    });
 
-    return { total, present, absent, late, excused, attendanceRate: total > 0 ? ((present + late) / total * 100).toFixed(1) : '0' };
+    const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
+    let total = 0;
+    for (const g of grouped) {
+      const status = g.status as keyof typeof counts;
+      if (counts[status] !== undefined) {
+        counts[status] = g._count.status;
+      }
+      total += g._count.status;
+    }
+
+    return {
+      total,
+      present: counts.PRESENT,
+      absent: counts.ABSENT,
+      late: counts.LATE,
+      excused: counts.EXCUSED,
+      attendanceRate: total > 0 ? (((counts.PRESENT + counts.LATE) / total) * 100).toFixed(1) : '0',
+    };
   }
 
-  // Teacher Attendance
   async recordTeacherAttendance(dto: TeacherAttendanceDto) {
     return this.prisma.teacherAttendance.upsert({
       where: {
@@ -133,19 +150,38 @@ export class AttendanceService {
       include: { user: { select: { firstName: true, lastName: true } } },
     });
 
-    const stats = [];
-    for (const student of students) {
-      const total = await this.prisma.attendance.count({
-        where: { studentProfileId: student.id, date: { gte: new Date(startDate), lte: new Date(endDate) } },
-      });
-      const absent = await this.prisma.attendance.count({
-        where: { studentProfileId: student.id, status: 'ABSENT', date: { gte: new Date(startDate), lte: new Date(endDate) } },
-      });
-      stats.push({
-        student: { id: student.id, name: `${student.user.firstName} ${student.user.lastName}` },
-        total, absent, attendanceRate: total > 0 ? (((total - absent) / total) * 100).toFixed(1) : '0',
-      });
+    const grouped = await this.prisma.attendance.groupBy({
+      by: ['studentProfileId', 'status'],
+      where: {
+        studentProfileId: { in: students.map((s) => s.id) },
+        date: { gte: new Date(startDate), lte: new Date(endDate) },
+      },
+      _count: { status: true },
+    });
+
+    const statsMap: Record<string, { total: number; absent: number; present: number; late: number }> = {};
+    for (const g of grouped) {
+      if (!statsMap[g.studentProfileId]) {
+        statsMap[g.studentProfileId] = { total: 0, absent: 0, present: 0, late: 0 };
+      }
+      statsMap[g.studentProfileId].total += g._count.status;
+      if (g.status === 'ABSENT') {
+        statsMap[g.studentProfileId].absent = g._count.status;
+      } else if (g.status === 'PRESENT') {
+        statsMap[g.studentProfileId].present = g._count.status;
+      } else if (g.status === 'LATE') {
+        statsMap[g.studentProfileId].late = g._count.status;
+      }
     }
-    return stats;
+
+    return students.map((student) => {
+      const s = statsMap[student.id] || { total: 0, absent: 0, present: 0, late: 0 };
+      return {
+        student: { id: student.id, name: `${student.user.firstName} ${student.user.lastName}` },
+        total: s.total,
+        absent: s.absent,
+        attendanceRate: s.total > 0 ? (((s.present + s.late) / s.total) * 100).toFixed(1) : '0',
+      };
+    });
   }
 }

@@ -19,7 +19,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exceptionResponse
         : (exceptionResponse as any).message || message;
     } else {
-      // Log unexpected errors for debugging but never expose details to client
+      
       this.logger.error(
         'Unhandled exception',
         exception instanceof Error ? exception.stack : String(exception),

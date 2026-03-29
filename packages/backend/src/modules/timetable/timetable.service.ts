@@ -7,7 +7,6 @@ import { DayOfWeek } from '@prisma/client';
 export class TimetableService {
   constructor(private prisma: PrismaService) {}
 
-  // Time Slots
   async getTimeSlots(schoolId: string) {
     return this.prisma.timeSlot.findMany({
       where: { schoolId },
@@ -43,7 +42,6 @@ export class TimetableService {
     return this.getTimeSlots(schoolId);
   }
 
-  // Timetable Entries
   async getByClass(classId: string) {
     return this.prisma.timetableEntry.findMany({
       where: { classId },
@@ -110,7 +108,6 @@ export class TimetableService {
     return { message: 'Sınıf ders programı temizlendi' };
   }
 
-  // Teacher Assignments
   async getTeacherAssignments(schoolId: string) {
     return this.prisma.teacherAssignment.findMany({
       where: {

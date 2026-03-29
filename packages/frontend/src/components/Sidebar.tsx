@@ -97,7 +97,6 @@ export default function Sidebar() {
       'h-screen bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
       collapsed ? 'w-16' : 'w-64',
     )}>
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-100">
         {!collapsed && (
           <div className="flex items-center gap-2">
@@ -112,7 +111,6 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {items.map((item) => {
           const Icon = item.icon;
@@ -135,7 +133,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User info & Logout */}
       <div className="border-t border-gray-100 p-3">
         {!collapsed && (
           <div className="mb-2 px-2">

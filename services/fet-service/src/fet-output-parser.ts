@@ -1,14 +1,3 @@
-/**
- * FET Output Parser
- * Parses FET-generated XML output files into usable timetable data
- *
- * FET output structure (in outputDir/timetables/FILENAME/):
- * - FILENAME_activities.xml - Activity Id + Day + Hour + Room
- * - FILENAME_soft_conflicts.txt - Soft constraint violations
- *
- * The activities XML only has Id/Day/Hour/Room - no teacher/subject/class info.
- * We need to match activity IDs back to the input data.
- */
 
 import fs from 'fs';
 import path from 'path';
@@ -48,11 +37,6 @@ const DAY_INDEX_MAP: Record<string, number> = {
   'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4,
 };
 
-/**
- * Parse FET output directory and extract timetable
- * @param outputDir FET output directory
- * @param inputActivities Original activity list (to map IDs back to teacher/subject/class)
- */
 export function parseFetOutput(outputDir: string, inputActivities?: any[]): ParsedTimetable {
   const result: ParsedTimetable = {
     entries: [],
@@ -64,26 +48,22 @@ export function parseFetOutput(outputDir: string, inputActivities?: any[]): Pars
     },
   };
 
-  // Find XML and TXT files recursively
   const xmlFiles = findAllFiles(outputDir, '.xml');
   const txtFiles = findAllFiles(outputDir, '.txt');
 
-  // Find the activities XML file
   const activitiesFile = xmlFiles.find(f => f.includes('_activities.xml'));
 
   if (activitiesFile) {
     try {
       const content = fs.readFileSync(activitiesFile, 'utf-8');
-      // Remove BOM if present
+      
       const cleanContent = content.replace(/^\uFEFF/, '');
       const parsed = parser.parse(cleanContent);
 
-      // FET output: Activities_Timetable > Activity[]
       let activities = parsed?.Activities_Timetable?.Activity;
       if (!activities) activities = [];
       if (!Array.isArray(activities)) activities = [activities];
 
-      // Build input activity lookup by ID
       const inputMap = buildInputActivityMap(inputActivities);
 
       for (const act of activities) {
@@ -94,7 +74,6 @@ export function parseFetOutput(outputDir: string, inputActivities?: any[]): Pars
 
         if (!day || !hour) continue;
 
-        // Get teacher/subject/class from input map
         const inputAct = inputMap.get(id);
 
         const hourStr = String(hour);
@@ -123,7 +102,6 @@ export function parseFetOutput(outputDir: string, inputActivities?: any[]): Pars
     }
   }
 
-  // Parse soft conflicts
   const conflictsFile = txtFiles.find(f => f.includes('soft_conflicts'));
   if (conflictsFile) {
     try {
@@ -138,16 +116,10 @@ export function parseFetOutput(outputDir: string, inputActivities?: any[]): Pars
   return result;
 }
 
-/**
- * Build a map of activity ID -> input activity data
- * FET assigns IDs sequentially starting from 1 based on the order in XML
- */
 function buildInputActivityMap(inputActivities?: any[]): Map<number, any> {
   const map = new Map<number, any>();
   if (!inputActivities) return map;
 
-  // Activities are numbered 1, 2, 3... in the order they appear in XML
-  // Group activities by teacher+subject+class (same as generateActivitiesXml)
   const grouped = new Map<string, any[]>();
   for (const act of inputActivities) {
     const key = `${act.teacherId}_${act.subjectId}_${act.classId}`;
@@ -166,9 +138,6 @@ function buildInputActivityMap(inputActivities?: any[]): Map<number, any> {
   return map;
 }
 
-/**
- * Find all files with given extension recursively
- */
 function findAllFiles(dir: string, ext: string): string[] {
   const results: string[] = [];
   if (!fs.existsSync(dir)) return results;

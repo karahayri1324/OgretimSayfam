@@ -41,7 +41,7 @@ export class UsersController {
   @Put(':id')
   @ApiOperation({ summary: 'Kullanıcı güncelle' })
   async update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('schoolId') schoolId: string, @CurrentUser('role') role: string, @CurrentUser('id') currentUserId: string) {
-    // Allow users to update their own profile, admins can update any user
+    
     if (id !== currentUserId && role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN') {
       throw new ForbiddenException('Sadece kendi profilinizi güncelleyebilirsiniz');
     }

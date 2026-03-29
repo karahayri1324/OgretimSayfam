@@ -52,7 +52,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     loadEvents().finally(() => setLoading(false));
-    api.get('/classes').then(({ data }) => setClasses(data.data || [])).catch(() => { console.warn('Siniflar yuklenemedi'); });
+    api.get('/classes').then(({ data }) => setClasses(data.data || [])).catch(() => {  });
   }, []);
 
   const openCreateModal = () => {
@@ -216,7 +216,6 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Create / Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setShowModal(false); setEditingEvent(null); }}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -238,7 +237,6 @@ export default function EventsPage() {
                 <input type="datetime-local" className="input" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
               </div>
 
-              {/* Time inputs */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Baslangic Saati</label>
@@ -252,7 +250,6 @@ export default function EventsPage() {
 
               <input className="input" placeholder="Konum" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
 
-              {/* Target classes */}
               {classes.length > 0 && (
                 <div>
                   <label className="text-sm text-gray-600 block mb-2">
@@ -290,7 +287,6 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>

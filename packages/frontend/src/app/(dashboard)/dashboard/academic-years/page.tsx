@@ -34,7 +34,6 @@ export default function AcademicYearsPage() {
   const [loading, setLoading] = useState(true);
   const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
 
-  // Modal states
   const [showYearModal, setShowYearModal] = useState(false);
   const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
   const [showTermModal, setShowTermModal] = useState(false);
@@ -48,7 +47,7 @@ export default function AcademicYearsPage() {
       const { data } = await api.get('/academic-years');
       const list = data.data || [];
       setYears(list);
-      // Auto-expand current year
+      
       const current = list.find((y: AcademicYear) => y.isCurrent);
       if (current) {
         setExpandedYears(new Set([current.id]));
@@ -150,7 +149,6 @@ export default function AcademicYearsPage() {
         <div className="space-y-4">
           {years.map((year) => (
             <div key={year.id} className="card">
-              {/* Year Header */}
               <div className="flex items-center justify-between">
                 <div
                   className="flex items-center gap-3 cursor-pointer flex-1"
@@ -212,7 +210,6 @@ export default function AcademicYearsPage() {
                 )}
               </div>
 
-              {/* Terms List (expanded) */}
               {expandedYears.has(year.id) && (
                 <div className="mt-4 ml-8 space-y-2">
                   {isAdmin && (
@@ -295,7 +292,6 @@ export default function AcademicYearsPage() {
         </div>
       )}
 
-      {/* Academic Year Modal */}
       {showYearModal && (
         <AcademicYearModal
           year={editingYear}
@@ -307,7 +303,6 @@ export default function AcademicYearsPage() {
         />
       )}
 
-      {/* Term Modal */}
       {showTermModal && (
         <TermModal
           term={editingTerm}

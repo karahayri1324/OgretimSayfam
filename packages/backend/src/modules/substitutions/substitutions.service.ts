@@ -72,7 +72,6 @@ export class SubstitutionsService {
     const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const dayOfWeek = dayNames[dateObj.getDay()] as DayOfWeek;
 
-    // Teachers who are present and don't have a class at this time slot
     const busyTeacherIds = await this.prisma.timetableEntry.findMany({
       where: { dayOfWeek, timeSlotId, teacherId: { not: null } },
       select: { teacherId: true },
@@ -80,7 +79,6 @@ export class SubstitutionsService {
 
     const busyIds = busyTeacherIds.map((t) => t.teacherId).filter(Boolean) as string[];
 
-    // Also exclude teachers who are already substituting at this time
     const substitutingIds = await this.prisma.substitution.findMany({
       where: {
         date: dateObj,

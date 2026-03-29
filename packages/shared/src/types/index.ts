@@ -1,4 +1,4 @@
-// Kullanıcı Rolleri
+
 export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   SCHOOL_ADMIN = 'SCHOOL_ADMIN',
@@ -7,50 +7,44 @@ export enum UserRole {
   PARENT = 'PARENT',
 }
 
-// Yoklama Durumları
 export enum AttendanceStatus {
-  PRESENT = 'PRESENT',       // Geldi
-  ABSENT = 'ABSENT',         // Gelmedi
-  LATE = 'LATE',             // Geç kaldı
-  EXCUSED = 'EXCUSED',       // İzinli
+  PRESENT = 'PRESENT',       
+  ABSENT = 'ABSENT',         
+  LATE = 'LATE',             
+  EXCUSED = 'EXCUSED',       
 }
 
-// Ödev Durumları
 export enum AssignmentStatus {
-  PENDING = 'PENDING',       // Bekliyor
-  SUBMITTED = 'SUBMITTED',   // Teslim edildi
-  GRADED = 'GRADED',         // Notlandı
-  LATE = 'LATE',             // Geç teslim
-  MISSING = 'MISSING',       // Teslim edilmedi
+  PENDING = 'PENDING',       
+  SUBMITTED = 'SUBMITTED',   
+  GRADED = 'GRADED',         
+  LATE = 'LATE',             
+  MISSING = 'MISSING',       
 }
 
-// Duyuru Kategorileri
 export enum AnnouncementCategory {
-  GENERAL = 'GENERAL',       // Genel
-  URGENT = 'URGENT',         // Acil
-  EVENT = 'EVENT',           // Etkinlik
-  EXAM = 'EXAM',             // Sınav
+  GENERAL = 'GENERAL',       
+  URGENT = 'URGENT',         
+  EVENT = 'EVENT',           
+  EXAM = 'EXAM',             
 }
 
-// Duyuru Hedef Kitlesi
 export enum AnnouncementTarget {
-  ALL = 'ALL',               // Tüm okul
-  TEACHERS = 'TEACHERS',     // Öğretmenler
-  STUDENTS = 'STUDENTS',     // Öğrenciler
-  PARENTS = 'PARENTS',       // Veliler
-  CLASS = 'CLASS',           // Belirli sınıf
+  ALL = 'ALL',               
+  TEACHERS = 'TEACHERS',     
+  STUDENTS = 'STUDENTS',     
+  PARENTS = 'PARENTS',       
+  CLASS = 'CLASS',           
 }
 
-// Not Kategorileri
 export enum GradeCategory {
-  EXAM = 'EXAM',             // Yazılı sınav
-  ORAL = 'ORAL',             // Sözlü
-  HOMEWORK = 'HOMEWORK',     // Ödev
-  PROJECT = 'PROJECT',       // Proje
-  PERFORMANCE = 'PERFORMANCE', // Performans
+  EXAM = 'EXAM',             
+  ORAL = 'ORAL',             
+  HOMEWORK = 'HOMEWORK',     
+  PROJECT = 'PROJECT',       
+  PERFORMANCE = 'PERFORMANCE', 
 }
 
-// Gün enum
 export enum DayOfWeek {
   MONDAY = 'MONDAY',
   TUESDAY = 'TUESDAY',
@@ -61,24 +55,21 @@ export enum DayOfWeek {
   SUNDAY = 'SUNDAY',
 }
 
-// Etkinlik Türleri
 export enum EventType {
-  TRIP = 'TRIP',             // Gezi
-  CEREMONY = 'CEREMONY',     // Tören
-  MEETING = 'MEETING',       // Toplantı
-  SPORTS = 'SPORTS',         // Sportif
-  CULTURAL = 'CULTURAL',     // Kültürel
-  OTHER = 'OTHER',           // Diğer
+  TRIP = 'TRIP',             
+  CEREMONY = 'CEREMONY',     
+  MEETING = 'MEETING',       
+  SPORTS = 'SPORTS',         
+  CULTURAL = 'CULTURAL',     
+  OTHER = 'OTHER',           
 }
 
-// Ders Saati Slotu
 export interface TimeSlot {
   slotNumber: number;
-  startTime: string;  // "08:30"
-  endTime: string;    // "09:10"
+  startTime: string;  
+  endTime: string;    
 }
 
-// API Yanıt Yapısı
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -86,7 +77,6 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
-// Sayfalama
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -95,9 +85,8 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// JWT Payload
 export interface JwtPayload {
-  sub: string;       // userId
+  sub: string;       
   email: string;
   role: UserRole;
   schoolId?: string;

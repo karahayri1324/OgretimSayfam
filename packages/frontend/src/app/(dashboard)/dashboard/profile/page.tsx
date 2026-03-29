@@ -17,10 +17,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 interface ProfileData {
   id: string;
   email: string;
@@ -39,10 +35,6 @@ const roleLabels: Record<string, string> = {
   PARENT: 'Veli',
 };
 
-// ---------------------------------------------------------------------------
-// Avatar Component
-// ---------------------------------------------------------------------------
-
 function UserAvatar({ firstName, lastName }: { firstName: string; lastName: string }) {
   const initials = `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
 
@@ -53,12 +45,8 @@ function UserAvatar({ firstName, lastName }: { firstName: string; lastName: stri
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main Page Component
-// ---------------------------------------------------------------------------
-
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -75,7 +63,6 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Fetch profile data
   useEffect(() => {
     if (!user?.id) return;
     api
@@ -93,7 +80,6 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
-  // Update profile
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
@@ -111,7 +97,7 @@ export default function ProfilePage() {
         phone: form.phone.trim() || undefined,
       });
       toast.success('Profil başarıyla güncellendi');
-      // Update local profile state
+      
       setProfile((prev) =>
         prev
           ? {
@@ -122,6 +108,8 @@ export default function ProfilePage() {
             }
           : prev,
       );
+      
+      updateUser({ firstName: form.firstName.trim(), lastName: form.lastName.trim() });
     } catch (err: any) {
       toast.error(err.response?.data?.message?.[0] || 'Profil güncellenemedi');
     } finally {
@@ -129,7 +117,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Change password
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -163,10 +150,6 @@ export default function ProfilePage() {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Loading state
-  // ---------------------------------------------------------------------------
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -181,13 +164,8 @@ export default function ProfilePage() {
 
   if (!profile) return null;
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
           <User className="w-5 h-5 text-primary-600" />
@@ -198,7 +176,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Profile Card */}
       <div className="card">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
           <UserAvatar firstName={profile.firstName} lastName={profile.lastName} />
@@ -225,7 +202,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Edit Profile Form */}
         <form onSubmit={handleSaveProfile} className="space-y-5">
           <div className="border-t border-gray-100 pt-6">
             <h3 className="text-base font-semibold text-gray-900 mb-4">Kişisel Bilgiler</h3>
@@ -293,7 +269,6 @@ export default function ProfilePage() {
         </form>
       </div>
 
-      {/* Password Change Card */}
       <div className="card">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
@@ -306,7 +281,6 @@ export default function ProfilePage() {
         </div>
 
         <form onSubmit={handleChangePassword} className="space-y-4">
-          {/* Current password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Mevcut Şifre</label>
             <div className="relative">
@@ -332,7 +306,6 @@ export default function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* New password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Yeni Şifre</label>
               <div className="relative">
@@ -357,7 +330,6 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Confirm new password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Yeni Şifre (Tekrar)

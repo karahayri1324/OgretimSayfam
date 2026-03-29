@@ -1,4 +1,4 @@
-// Varsayılan ders saatleri (Türk eğitim sistemi)
+
 export const DEFAULT_TIME_SLOTS = [
   { slotNumber: 1, startTime: '08:30', endTime: '09:10' },
   { slotNumber: 2, startTime: '09:20', endTime: '10:00' },
@@ -10,23 +10,20 @@ export const DEFAULT_TIME_SLOTS = [
   { slotNumber: 8, startTime: '14:50', endTime: '15:30' },
 ];
 
-// Varsayılan not ağırlıkları
 export const DEFAULT_GRADE_WEIGHTS = {
-  EXAM: 0.40,         // %40
-  ORAL: 0.15,         // %15
-  HOMEWORK: 0.15,     // %15
-  PERFORMANCE: 0.15,  // %15
-  PROJECT: 0.15,      // %15
+  EXAM: 0.40,         
+  ORAL: 0.15,         
+  HOMEWORK: 0.15,     
+  PERFORMANCE: 0.15,  
+  PROJECT: 0.15,      
 };
 
-// Sayfalama varsayılanları
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 20,
   MAX_LIMIT: 100,
 };
 
-// Token süreleri
 export const TOKEN_EXPIRY = {
   ACCESS: '15m',
   REFRESH: '7d',

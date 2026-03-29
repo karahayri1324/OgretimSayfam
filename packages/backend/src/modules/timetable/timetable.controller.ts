@@ -18,8 +18,6 @@ export class TimetableController {
     private fetIntegrationService: FetIntegrationService,
   ) {}
 
-  // ==================== TIME SLOTS ====================
-
   @Get('time-slots')
   @ApiOperation({ summary: 'Ders saatlerini getir' })
   async getTimeSlots(@CurrentUser('schoolId') schoolId: string) {
@@ -41,8 +39,6 @@ export class TimetableController {
   async createDefaults(@CurrentUser('schoolId') schoolId: string) {
     return { success: true, data: await this.timetableService.createDefaultTimeSlots(schoolId) };
   }
-
-  // ==================== TIMETABLE ENTRIES ====================
 
   @Get('class/:classId')
   @ApiOperation({ summary: 'Sınıf ders programı' })
@@ -86,8 +82,6 @@ export class TimetableController {
     return { success: true, data: await this.timetableService.deleteEntry(id) };
   }
 
-  // ==================== ÖĞRETMEN ATAMALARI ====================
-
   @Get('assignments')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT')
@@ -111,8 +105,6 @@ export class TimetableController {
   async deleteAssignment(@Param('id') id: string) {
     return { success: true, data: await this.timetableService.deleteTeacherAssignment(id) };
   }
-
-  // ==================== FET ENTEGRASYONU ====================
 
   @Get('fet/health')
   @UseGuards(RolesGuard)

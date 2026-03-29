@@ -18,7 +18,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Show loading while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -27,7 +26,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // If authenticated, don't render auth pages (redirect happening)
   if (isAuthenticated) return null;
 
   return <>{children}</>;

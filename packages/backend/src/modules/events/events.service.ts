@@ -66,7 +66,7 @@ export class EventsService {
     const event = await this.prisma.event.update({ where: { id }, data });
 
     if (targetClassIds !== undefined) {
-      // Remove existing and re-create
+      
       await this.prisma.eventClass.deleteMany({ where: { eventId: id } });
       if (targetClassIds.length > 0) {
         await this.prisma.eventClass.createMany({

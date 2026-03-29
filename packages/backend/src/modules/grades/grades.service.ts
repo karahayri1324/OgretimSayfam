@@ -142,7 +142,6 @@ export class GradesService {
     return { created: results, skipped: dto.grades.length - validEntries.length };
   }
 
-  // Grade Categories
   async getCategories(schoolId: string) {
     return this.prisma.gradeCategory.findMany({
       where: { schoolId },

@@ -10,8 +10,7 @@ import { UserRole } from '@prisma/client';
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
-  // In-memory store for password reset tokens
-  // TODO: Production ortamında Redis veya DB tablosu kullanılmalı
+  
   private resetTokens = new Map<string, { userId: string; expiresAt: Date }>();
 
   constructor(
@@ -51,7 +50,6 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('E-posta veya şifre hatalı');
     }
 
-    // Update last login
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -96,7 +94,6 @@ export class AuthService implements OnModuleInit {
       },
     });
 
-    // Create role-specific profile
     if (role === UserRole.TEACHER) {
       await this.prisma.teacherProfile.create({ data: { userId: user.id } });
     } else if (role === UserRole.STUDENT) {
@@ -132,7 +129,6 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Geçersiz veya süresi dolmuş token');
     }
 
-    // Delete old token
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 
     return this.generateTokens(stored.user.id, stored.user.email, stored.user.role, stored.user.schoolId);
@@ -155,7 +151,6 @@ export class AuthService implements OnModuleInit {
       data: { password: hashed },
     });
 
-    // Invalidate all refresh tokens
     await this.prisma.refreshToken.deleteMany({ where: { userId } });
 
     return { message: 'Şifre başarıyla değiştirildi' };
@@ -164,17 +159,16 @@ export class AuthService implements OnModuleInit {
   async requestPasswordReset(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
-      // Don't reveal if email exists
+      
       return { message: 'Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi' };
     }
 
     const token = crypto.randomBytes(32).toString('hex');
     this.resetTokens.set(token, {
       userId: user.id,
-      expiresAt: new Date(Date.now() + 3600000), // 1 hour
+      expiresAt: new Date(Date.now() + 3600000), 
     });
 
-    // TODO: Production ortamında e-posta ile sıfırlama bağlantısı gönderilmeli
     if (process.env.NODE_ENV !== 'production') {
       this.logger.debug(`Password reset token generated for ${email}: ${token}`);
     } else {
@@ -193,7 +187,6 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('Geçersiz veya süresi dolmuş token');
     }
 
-    // Delete token immediately to prevent race condition (double-use)
     const userId = stored.userId;
     this.resetTokens.delete(token);
 
@@ -203,7 +196,6 @@ export class AuthService implements OnModuleInit {
       data: { password: hashed },
     });
 
-    // Invalidate all refresh tokens
     await this.prisma.refreshToken.deleteMany({ where: { userId } });
 
     return { message: 'Şifre başarıyla sıfırlandı' };
@@ -225,7 +217,6 @@ export class AuthService implements OnModuleInit {
       expiresIn: '7d',
     });
 
-    // Store refresh token
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 

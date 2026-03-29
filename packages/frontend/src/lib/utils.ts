@@ -34,11 +34,11 @@ export function formatRelativeDate(date: string | Date) {
   if (diffMins < 1) return 'Az önce';
   if (diffMins < 60) return `${diffMins} dakika önce`;
   if (diffHours < 24) {
-    // Check if it's today
+    
     if (d.toDateString() === now.toDateString()) return `Bugün ${d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
     return `Dün ${d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
   }
-  // Check yesterday
+  
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (d.toDateString() === yesterday.toDateString()) return `Dün ${d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;

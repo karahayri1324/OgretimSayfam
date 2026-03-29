@@ -123,7 +123,6 @@ export class DashboardService {
       }).catch(() => 0),
     ]);
 
-    // Count weekly hours
     const weeklyEntries = isWeekend ? [] : await this.prisma.timetableEntry.findMany({
       where: { teacherId: teacherProfileId },
       select: { id: true },
@@ -211,7 +210,6 @@ export class DashboardService {
       }).catch(() => 0),
     ]);
 
-    // Calculate grade average
     const gradeAverage = recentGrades.length > 0
       ? recentGrades.reduce((sum: number, g: any) => sum + g.score, 0) / recentGrades.length
       : 0;
@@ -237,7 +235,6 @@ export class DashboardService {
     const dayOfWeek = dayNames[dayIndex];
     const isWeekend = dayIndex === 0 || dayIndex === 6;
 
-    // Find parent profile and linked children
     const parentProfile = await this.prisma.parentProfile.findUnique({
       where: { userId },
       include: {
@@ -263,7 +260,6 @@ export class DashboardService {
       };
     }
 
-    // Get schoolId from the first child's user
     const firstStudentUserId = parentProfile.parentStudents[0].student.userId;
     const firstStudentUser = await this.prisma.user.findUnique({
       where: { id: firstStudentUserId },
@@ -271,7 +267,6 @@ export class DashboardService {
     });
     const schoolId = firstStudentUser?.schoolId;
 
-    // Fetch data for each child
     const children = await Promise.all(
       parentProfile.parentStudents.map(async (ps) => {
         const student = ps.student;
@@ -342,7 +337,6 @@ export class DashboardService {
       }),
     );
 
-    // Fetch announcements for the school
     const recentAnnouncements = schoolId
       ? await this.prisma.announcement.findMany({
           where: { schoolId, isActive: true },

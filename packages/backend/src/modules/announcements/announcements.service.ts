@@ -44,7 +44,6 @@ export class AnnouncementsService {
 
     const whereClause: any = { schoolId, isActive: true };
 
-    // Filter out unpublished scheduled announcements for non-admin users
     if (!isAdmin) {
       whereClause.OR = [
         { publishAt: null },

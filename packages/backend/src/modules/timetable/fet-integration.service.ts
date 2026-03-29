@@ -29,9 +29,6 @@ export class FetIntegrationService {
     this.fetServiceUrl = this.configService.get('FET_SERVICE_URL') || 'http://localhost:3002';
   }
 
-  /**
-   * Check if FET service is healthy
-   */
   async checkHealth(): Promise<{ ok: boolean; fetClAvailable: boolean }> {
     try {
       const { data } = await axios.get(`${this.fetServiceUrl}/health`, { timeout: 5000 });
@@ -41,11 +38,8 @@ export class FetIntegrationService {
     }
   }
 
-  /**
-   * Gather all school data needed for FET timetable generation
-   */
   async gatherSchoolData(schoolId: string) {
-    // Get all active teachers with profiles
+    
     const teacherUsers = await this.prisma.user.findMany({
       where: { schoolId, role: 'TEACHER', isActive: true },
       include: { teacherProfile: true },
@@ -58,25 +52,21 @@ export class FetIntegrationService {
         name: `${u.firstName} ${u.lastName}`,
       }));
 
-    // Get all active subjects
     const subjects = await this.prisma.subject.findMany({
       where: { schoolId, isActive: true },
       select: { id: true, name: true, code: true, color: true },
     });
 
-    // Get all active classes
     const classes = await this.prisma.class.findMany({
       where: { schoolId, isActive: true },
       select: { id: true, name: true, grade: true, section: true, capacity: true },
     });
 
-    // Get all active classrooms
     const classrooms = await this.prisma.classroom.findMany({
       where: { schoolId, isActive: true },
       select: { id: true, name: true, capacity: true, type: true },
     });
 
-    // Get teacher assignments (which teacher teaches which subject in which class)
     const assignments = await this.prisma.teacherAssignment.findMany({
       where: {
         teacherProfile: { user: { schoolId } },
@@ -90,7 +80,6 @@ export class FetIntegrationService {
       },
     });
 
-    // Get time slots
     const timeSlots = await this.prisma.timeSlot.findMany({
       where: { schoolId },
       orderBy: { slotNumber: 'asc' },
@@ -99,9 +88,6 @@ export class FetIntegrationService {
     return { teachers, subjects, classes, classrooms, assignments, timeSlots };
   }
 
-  /**
-   * Build FET activities from teacher assignments
-   */
   buildActivities(assignments: any[]): FetActivity[] {
     const activities: FetActivity[] = [];
 
@@ -109,7 +95,6 @@ export class FetIntegrationService {
       const teacherName = `${assignment.teacherProfile.user.firstName} ${assignment.teacherProfile.user.lastName}`;
       const hoursPerWeek = assignment.hoursPerWeek || 4;
 
-      // Split into individual activities (each 1 hour)
       for (let i = 0; i < hoursPerWeek; i++) {
         activities.push({
           id: `${assignment.id}_${i}`,
@@ -128,9 +113,6 @@ export class FetIntegrationService {
     return activities;
   }
 
-  /**
-   * Start timetable generation via FET service
-   */
   async generateTimetable(schoolId: string, constraints?: any): Promise<{
     success: boolean;
     jobId?: string;
@@ -146,7 +128,6 @@ export class FetIntegrationService {
       };
     }
 
-    // Build hour names from time slots
     const hourNames = schoolData.timeSlots.map(ts => `${ts.slotNumber}. Ders`);
 
     const payload = {
@@ -181,9 +162,6 @@ export class FetIntegrationService {
     }
   }
 
-  /**
-   * Start synchronous timetable generation
-   */
   async generateTimetableSync(schoolId: string, constraints?: any): Promise<{
     success: boolean;
     data?: any;
@@ -217,7 +195,7 @@ export class FetIntegrationService {
       const { data } = await axios.post(
         `${this.fetServiceUrl}/api/fet/generate-sync`,
         payload,
-        { timeout: 600000 }, // 10 min timeout for sync generation
+        { timeout: 600000 }, 
       );
 
       return data;
@@ -230,9 +208,6 @@ export class FetIntegrationService {
     }
   }
 
-  /**
-   * Check job status
-   */
   async checkJobStatus(jobId: string): Promise<any> {
     try {
       const { data } = await axios.get(
@@ -245,9 +220,6 @@ export class FetIntegrationService {
     }
   }
 
-  /**
-   * Get job result
-   */
   async getJobResult(jobId: string): Promise<any> {
     try {
       const { data } = await axios.get(
@@ -260,13 +232,9 @@ export class FetIntegrationService {
     }
   }
 
-  /**
-   * Import FET result into database timetable entries
-   */
   async importFetResult(schoolId: string, fetEntries: any[]) {
     const schoolData = await this.gatherSchoolData(schoolId);
 
-    // Build lookup maps
     const teacherMap = new Map<string, string>();
     for (const a of schoolData.assignments) {
       const name = `${a.teacherProfile.user.firstName} ${a.teacherProfile.user.lastName}`;
@@ -306,12 +274,10 @@ export class FetIntegrationService {
       'Friday': 'FRIDAY',
     };
 
-    // Clear existing timetable for this school's classes
     for (const cls of schoolData.classes) {
       await this.prisma.timetableEntry.deleteMany({ where: { classId: cls.id } });
     }
 
-    // Import entries
     const imported: any[] = [];
     const errors: string[] = [];
 
@@ -321,7 +287,6 @@ export class FetIntegrationService {
       const teacherId = teacherMap.get(entry.teacher);
       const dayOfWeek = dayMap[entry.day] || dayMap[entry.dayOfWeek];
 
-      // Get time slot - hourIndex is 0-based, slotNumber is 1-based
       const slotNumber = (entry.hourIndex ?? entry.slotNumber ?? 0) + 1;
       const timeSlotId = timeSlotMap.get(slotNumber);
 
@@ -358,9 +323,6 @@ export class FetIntegrationService {
     };
   }
 
-  /**
-   * Get preview data for FET generation (what will be sent to FET)
-   */
   async getPreviewData(schoolId: string) {
     const schoolData = await this.gatherSchoolData(schoolId);
     const activities = this.buildActivities(schoolData.assignments);

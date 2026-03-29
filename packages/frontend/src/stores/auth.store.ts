@@ -21,9 +21,10 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: true,
   isAuthenticated: false,
@@ -31,10 +32,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
     const { user, accessToken, refreshToken } = data.data;
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    if (user.school?.slug) {
-      localStorage.setItem('schoolSlug', user.school.slug);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      if (user.school?.slug) {
+        localStorage.setItem('schoolSlug', user.school.slug);
+      }
     }
     set({ user, isAuthenticated: true, isLoading: false });
   },
@@ -42,35 +45,45 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     try {
       await api.post('/auth/logout');
-    } catch {}
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('schoolSlug');
+    } catch {  }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('schoolSlug');
+    }
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 
   checkAuth: () => {
+    if (typeof window === 'undefined') {
+      set({ isLoading: false, isAuthenticated: false });
+      return;
+    }
+
     const token = localStorage.getItem('accessToken');
     if (!token) {
       set({ isLoading: false, isAuthenticated: false });
       return;
     }
-    // Decode JWT to get user info
+
     try {
       const parts = token.split('.');
       if (parts.length !== 3) {
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         set({ isLoading: false, isAuthenticated: false });
         return;
       }
+
       const payload = JSON.parse(atob(parts[1]));
-      // Check if expired
-      if (payload.exp * 1000 < Date.now()) {
+
+      if (!payload.exp || typeof payload.exp !== 'number' || payload.exp * 1000 < Date.now()) {
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         set({ isLoading: false, isAuthenticated: false });
         return;
       }
-      // Fetch fresh user data from token payload
+
       set({
         user: {
           id: payload.sub,
@@ -82,8 +95,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-      // Fetch full user data in background
-      api.get(`/users/${payload.sub}`).then(({ data }) => {
+
+      const userId = payload.sub;
+      api.get(`/users/${userId}`).then(({ data }) => {
+        
+        const currentUser = get().user;
+        if (!currentUser || currentUser.id !== userId) return;
+
         if (data.success) {
           const u = data.data;
           if (u.school?.slug) {
@@ -104,9 +122,21 @@ export const useAuthStore = create<AuthState>((set) => ({
             },
           });
         }
-      }).catch(() => {});
+      }).catch(() => {
+        
+      });
     } catch {
+      
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       set({ isLoading: false, isAuthenticated: false });
+    }
+  },
+
+  updateUser: (updates: Partial<User>) => {
+    const current = get().user;
+    if (current) {
+      set({ user: { ...current, ...updates } });
     }
   },
 }));

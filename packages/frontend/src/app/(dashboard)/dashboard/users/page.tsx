@@ -12,20 +12,17 @@ export default function UsersPage() {
   const [filterRole, setFilterRole] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Create modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({
     email: '', password: '123456', firstName: '', lastName: '', phone: '', role: 'TEACHER', studentNumber: '',
   });
 
-  // Edit modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     firstName: '', lastName: '', phone: '', isActive: true,
   });
 
-  // Delete confirmation
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingUser, setDeletingUser] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -42,7 +39,6 @@ export default function UsersPage() {
 
   useEffect(() => { fetchUsers(); }, [filterRole]);
 
-  // Filtered users by search query
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return users;
     const q = searchQuery.toLowerCase().trim();
@@ -54,7 +50,6 @@ export default function UsersPage() {
     });
   }, [users, searchQuery]);
 
-  // Create
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -68,7 +63,6 @@ export default function UsersPage() {
     }
   };
 
-  // Edit
   const openEditModal = (user: any) => {
     setEditingUser(user);
     setEditForm({
@@ -94,7 +88,6 @@ export default function UsersPage() {
     }
   };
 
-  // Delete
   const openDeleteDialog = (user: any) => {
     setDeletingUser(user);
     setShowDeleteDialog(true);
@@ -125,7 +118,6 @@ export default function UsersPage() {
         </button>
       </div>
 
-      {/* Search & Filters */}
       <div className="space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -158,7 +150,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="card overflow-hidden !p-0">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
@@ -228,7 +219,6 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
@@ -258,7 +248,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Edit Modal */}
       {showEditModal && editingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
@@ -303,7 +292,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       {showDeleteDialog && deletingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">

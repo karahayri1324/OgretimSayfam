@@ -5,10 +5,6 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { BarChart3, Loader2, Users, User } from 'lucide-react';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
 interface ClassOption {
   id: string;
   name: string;
@@ -23,10 +19,6 @@ interface StudentAttendanceStat {
   late: number;
   excused: number;
 }
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
 
 function rateColorClass(rate: number): string {
   if (rate >= 90) return 'bg-emerald-100 text-emerald-700';
@@ -43,10 +35,6 @@ function formatDateInput(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
-
 export default function AttendanceReportPage() {
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -60,7 +48,6 @@ export default function AttendanceReportPage() {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Fetch classes on mount
   useEffect(() => {
     api
       .get('/classes')
@@ -73,7 +60,6 @@ export default function AttendanceReportPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch attendance stats when filters change
   useEffect(() => {
     if (!selectedClassId || !startDate || !endDate) return;
     setStatsLoading(true);
@@ -88,7 +74,6 @@ export default function AttendanceReportPage() {
       .finally(() => setStatsLoading(false));
   }, [selectedClassId, startDate, endDate]);
 
-  // Compute summary
   const summary = useMemo(() => {
     if (stats.length === 0) return null;
     const totalStudents = stats.length;
@@ -111,7 +96,6 @@ export default function AttendanceReportPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
           <BarChart3 className="w-5 h-5 text-primary-600" />
@@ -122,7 +106,6 @@ export default function AttendanceReportPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="card">
         <div className="flex flex-wrap gap-3 items-end">
           <div>
@@ -159,7 +142,6 @@ export default function AttendanceReportPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="card flex items-center gap-4">
@@ -192,7 +174,6 @@ export default function AttendanceReportPage() {
         </div>
       )}
 
-      {/* Table */}
       <div className="card !p-0 overflow-hidden">
         {statsLoading ? (
           <div className="p-12 text-center">

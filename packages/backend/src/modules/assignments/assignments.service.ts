@@ -127,7 +127,7 @@ export class AssignmentsService {
   }
 
   async getTeacherAssignments(teacherProfileId: string) {
-    // Find all classes/subjects this teacher is assigned to
+    
     const teacherAssignments = await this.prisma.teacherAssignment.findMany({
       where: { teacherProfileId },
       select: { classId: true, subjectId: true },
