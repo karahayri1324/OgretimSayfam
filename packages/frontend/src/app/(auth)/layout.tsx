@@ -10,7 +10,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+    // Store tarafındaki checkAuth kararlı bir referans değil; yalnızca mount sırasında çalıştır.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {

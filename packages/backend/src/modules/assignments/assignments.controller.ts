@@ -16,26 +16,30 @@ export class AssignmentsController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('TEACHER')
+  @Roles('TEACHER', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ödev oluştur' })
-  async create(@Body() dto: CreateAssignmentDto) {
-    return { success: true, data: await this.assignmentsService.create(dto) };
+  async create(@CurrentUser('schoolId') schoolId: string, @Body() dto: CreateAssignmentDto) {
+    return { success: true, data: await this.assignmentsService.create(schoolId, dto) };
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
-  @Roles('TEACHER')
+  @Roles('TEACHER', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ödev güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateAssignmentDto) {
-    return { success: true, data: await this.assignmentsService.update(id, dto) };
+  async update(
+    @Param('id') id: string,
+    @CurrentUser('schoolId') schoolId: string,
+    @Body() dto: UpdateAssignmentDto,
+  ) {
+    return { success: true, data: await this.assignmentsService.update(id, schoolId, dto) };
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('TEACHER', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ödev sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.assignmentsService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.assignmentsService.delete(id, schoolId) };
   }
 
   @Get('parent/my')

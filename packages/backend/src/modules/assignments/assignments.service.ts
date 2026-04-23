@@ -1,29 +1,85 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAssignmentDto, UpdateAssignmentDto, SubmitAssignmentDto, GradeSubmissionDto } from './dto/assignments.dto';
+import { getStartOfDayInTimezone } from '../../common/utils/date.utils';
 
 @Injectable()
 export class AssignmentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateAssignmentDto) {
+  private async assertClassInSchool(classId: string, schoolId: string) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: { schoolId: true },
+    });
+    if (!cls) throw new NotFoundException('Sınıf bulunamadı');
+    if (cls.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu sınıfa erişim yetkiniz yok');
+    }
+  }
+
+  private async assertSubjectInSchool(subjectId: string, schoolId: string) {
+    const sub = await this.prisma.subject.findUnique({
+      where: { id: subjectId },
+      select: { schoolId: true },
+    });
+    if (!sub) throw new NotFoundException('Ders bulunamadı');
+    if (sub.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu derse erişim yetkiniz yok');
+    }
+  }
+
+  async create(schoolId: string, dto: CreateAssignmentDto) {
+    await this.assertClassInSchool(dto.classId, schoolId);
+    await this.assertSubjectInSchool(dto.subjectId, schoolId);
+
+    const dueDate = new Date(dto.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      throw new BadRequestException('Geçersiz teslim tarihi');
+    }
+    if (dueDate.getTime() < getStartOfDayInTimezone().getTime()) {
+      throw new BadRequestException('Teslim tarihi geçmiş olamaz');
+    }
+
     return this.prisma.assignment.create({
-      data: { ...dto, dueDate: new Date(dto.dueDate) },
+      data: { ...dto, dueDate },
       include: { class: { select: { name: true } }, subject: { select: { name: true } } },
     });
   }
 
-  async update(id: string, dto: UpdateAssignmentDto) {
-    const existing = await this.prisma.assignment.findUnique({ where: { id } });
+  async update(id: string, schoolId: string, dto: UpdateAssignmentDto) {
+    const existing = await this.prisma.assignment.findUnique({
+      where: { id },
+      include: { class: { select: { schoolId: true } } },
+    });
     if (!existing) throw new NotFoundException('Ödev bulunamadı');
+    if (existing.class.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu ödeve erişim yetkiniz yok');
+    }
+
     const data: any = { ...dto };
-    if (dto.dueDate) data.dueDate = new Date(dto.dueDate);
+    if (dto.dueDate) {
+      const dueDate = new Date(dto.dueDate);
+      if (isNaN(dueDate.getTime())) {
+        throw new BadRequestException('Geçersiz teslim tarihi');
+      }
+      if (dueDate.getTime() < getStartOfDayInTimezone().getTime()) {
+        throw new BadRequestException('Teslim tarihi geçmiş olamaz');
+      }
+      data.dueDate = dueDate;
+    }
     return this.prisma.assignment.update({ where: { id }, data });
   }
 
-  async delete(id: string) {
-    const existing = await this.prisma.assignment.findUnique({ where: { id } });
+  async delete(id: string, schoolId: string) {
+    const existing = await this.prisma.assignment.findUnique({
+      where: { id },
+      include: { class: { select: { schoolId: true } } },
+    });
     if (!existing) throw new NotFoundException('Ödev bulunamadı');
+    if (existing.class.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu ödeve erişim yetkiniz yok');
+    }
     await this.prisma.assignment.delete({ where: { id } });
     return { message: 'Ödev silindi' };
   }

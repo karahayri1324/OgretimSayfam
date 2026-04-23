@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateAcademicYearDto,
@@ -21,7 +21,7 @@ export class AcademicYearsService {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, schoolId?: string) {
     const year = await this.prisma.academicYear.findUnique({
       where: { id },
       include: {
@@ -29,6 +29,9 @@ export class AcademicYearsService {
       },
     });
     if (!year) throw new NotFoundException('Akademik yıl bulunamadı');
+    if (schoolId && year.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu akademik yıla erişim yetkiniz yok');
+    }
     return year;
   }
 
@@ -47,8 +50,8 @@ export class AcademicYearsService {
     });
   }
 
-  async update(id: string, dto: UpdateAcademicYearDto) {
-    await this.findById(id);
+  async update(id: string, schoolId: string, dto: UpdateAcademicYearDto) {
+    await this.findById(id, schoolId);
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
@@ -61,20 +64,20 @@ export class AcademicYearsService {
     });
   }
 
-  async delete(id: string) {
-    await this.findById(id);
+  async delete(id: string, schoolId: string) {
+    await this.findById(id, schoolId);
     await this.prisma.academicYear.delete({ where: { id } });
     return { message: 'Akademik yıl silindi' };
   }
 
-  async setCurrent(id: string) {
-    const year = await this.findById(id);
-    
+  async setCurrent(id: string, schoolId: string) {
+    const year = await this.findById(id, schoolId);
+
     await this.prisma.academicYear.updateMany({
       where: { schoolId: year.schoolId, isCurrent: true },
       data: { isCurrent: false },
     });
-    
+
     return this.prisma.academicYear.update({
       where: { id },
       data: { isCurrent: true },
@@ -82,9 +85,8 @@ export class AcademicYearsService {
     });
   }
 
-  async createTerm(academicYearId: string, dto: CreateTermDto) {
-    const year = await this.findById(academicYearId);
-    if (!year) throw new NotFoundException('Akademik yıl bulunamadı');
+  async createTerm(academicYearId: string, schoolId: string, dto: CreateTermDto) {
+    await this.findById(academicYearId, schoolId);
 
     if (new Date(dto.startDate) >= new Date(dto.endDate)) {
       throw new BadRequestException('Başlangıç tarihi bitiş tarihinden önce olmalıdır');
@@ -100,9 +102,20 @@ export class AcademicYearsService {
     });
   }
 
-  async updateTerm(termId: string, dto: UpdateTermDto) {
-    const term = await this.prisma.term.findUnique({ where: { id: termId } });
+  private async getTermWithSchool(termId: string) {
+    const term = await this.prisma.term.findUnique({
+      where: { id: termId },
+      include: { academicYear: { select: { schoolId: true } } },
+    });
     if (!term) throw new NotFoundException('Dönem bulunamadı');
+    return term;
+  }
+
+  async updateTerm(termId: string, schoolId: string, dto: UpdateTermDto) {
+    const term = await this.getTermWithSchool(termId);
+    if (term.academicYear.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu döneme erişim yetkiniz yok');
+    }
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
@@ -115,25 +128,26 @@ export class AcademicYearsService {
     });
   }
 
-  async deleteTerm(termId: string) {
-    const term = await this.prisma.term.findUnique({ where: { id: termId } });
-    if (!term) throw new NotFoundException('Dönem bulunamadı');
+  async deleteTerm(termId: string, schoolId: string) {
+    const term = await this.getTermWithSchool(termId);
+    if (term.academicYear.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu döneme erişim yetkiniz yok');
+    }
     await this.prisma.term.delete({ where: { id: termId } });
     return { message: 'Dönem silindi' };
   }
 
-  async setCurrentTerm(termId: string) {
-    const term = await this.prisma.term.findUnique({
-      where: { id: termId },
-      include: { academicYear: true },
-    });
-    if (!term) throw new NotFoundException('Dönem bulunamadı');
+  async setCurrentTerm(termId: string, schoolId: string) {
+    const term = await this.getTermWithSchool(termId);
+    if (term.academicYear.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu döneme erişim yetkiniz yok');
+    }
 
     await this.prisma.term.updateMany({
       where: { academicYearId: term.academicYearId, isCurrent: true },
       data: { isCurrent: false },
     });
-    
+
     return this.prisma.term.update({
       where: { id: termId },
       data: { isCurrent: true },

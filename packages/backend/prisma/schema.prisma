@@ -371,9 +371,9 @@ model Substitution {
   timetableEntryId       String
   timetableEntry         TimetableEntry  @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
   originalTeacherId      String
-  originalTeacher        TeacherProfile  @relation("SubstitutedTeacher", fields: [originalTeacherId], references: [id])
+  originalTeacher        TeacherProfile  @relation("SubstitutedTeacher", fields: [originalTeacherId], references: [id], onDelete: Cascade)
   substituteTeacherId    String?
-  substituteTeacher      TeacherProfile? @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id])
+  substituteTeacher      TeacherProfile? @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id], onDelete: SetNull)
   date                   DateTime        @db.Date
   isEmptyLesson          Boolean         @default(false) // Boş ders mi?
   reason                 String?
@@ -407,8 +407,8 @@ model Grade {
   studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
   subjectId        String
   subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacherProfileId String
-  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id])
+  teacherProfileId String?
+  teacherProfile   TeacherProfile? @relation(fields: [teacherProfileId], references: [id], onDelete: SetNull)
   termId           String
   term             Term           @relation(fields: [termId], references: [id], onDelete: Cascade)
   categoryId       String

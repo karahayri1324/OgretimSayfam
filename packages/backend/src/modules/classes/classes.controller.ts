@@ -50,14 +50,21 @@ export class ClassesController {
   @Post(':id/students/:studentProfileId')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Öğrenciyi sınıfa ekle' })
-  async addStudent(@Param('id') classId: string, @Param('studentProfileId') spId: string) {
-    return { success: true, data: await this.classesService.addStudent(classId, spId) };
+  async addStudent(
+    @Param('id') classId: string,
+    @Param('studentProfileId') spId: string,
+    @CurrentUser('schoolId') schoolId: string,
+  ) {
+    return { success: true, data: await this.classesService.addStudent(classId, spId, schoolId) };
   }
 
   @Delete(':id/students/:studentProfileId')
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Öğrenciyi sınıftan çıkar' })
-  async removeStudent(@Param('studentProfileId') spId: string) {
-    return { success: true, data: await this.classesService.removeStudent(spId) };
+  async removeStudent(
+    @Param('studentProfileId') spId: string,
+    @CurrentUser('schoolId') schoolId: string,
+  ) {
+    return { success: true, data: await this.classesService.removeStudent(spId, schoolId) };
   }
 }

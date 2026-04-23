@@ -7,7 +7,12 @@ export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateNotificationDto) {
-    return this.prisma.notification.create({ data: dto });
+    return this.prisma.notification.create({
+      data: {
+        ...dto,
+        data: dto.data as any,
+      },
+    });
   }
 
   async getByUser(userId: string, page = 1, limit = 20, isRead?: boolean) {

@@ -1,22 +1,61 @@
-import express from 'express';
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { generateFetXml } from './fet-xml-builder';
 import { runFetCl } from './fet-runner';
 import { parseFetOutput } from './fet-output-parser';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
 
-const TMP_DIR = path.join(__dirname, '..', 'tmp');
+const ALLOWED_ORIGINS = (process.env.FET_ALLOWED_ORIGINS || 'http://localhost:3001')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(new Error('Origin izinli değil'), false);
+    },
+  }),
+);
+app.use(express.json({ limit: '2mb' }));
+
+const FET_SHARED_SECRET = process.env.FET_SHARED_SECRET;
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!FET_SHARED_SECRET) {
+    return next();
+  }
+  const header = req.headers['x-fet-secret'];
+  if (typeof header !== 'string' || header.length !== FET_SHARED_SECRET.length) {
+    return res.status(401).json({ success: false, message: 'Kimlik doğrulama başarısız' });
+  }
+  try {
+    const a = Buffer.from(header);
+    const b = Buffer.from(FET_SHARED_SECRET);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return res.status(401).json({ success: false, message: 'Kimlik doğrulama başarısız' });
+    }
+  } catch {
+    return res.status(401).json({ success: false, message: 'Kimlik doğrulama başarısız' });
+  }
+  return next();
+}
+
+const TMP_DIR = path.resolve(__dirname, '..', 'tmp');
 if (!fs.existsSync(TMP_DIR)) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
 }
 
 interface GenerationJob {
   status: 'pending' | 'running' | 'completed' | 'failed';
+  schoolId: string;
   inputData: any;
   result?: any;
   error?: string;
@@ -25,8 +64,9 @@ interface GenerationJob {
 }
 
 const jobs: Record<string, GenerationJob> = {};
+const activeSchoolJobs = new Set<string>();
 const MAX_JOBS = 100;
-const JOB_TTL_MS = 60 * 60 * 1000; 
+const JOB_TTL_MS = 60 * 60 * 1000;
 
 setInterval(() => {
   const now = Date.now();
@@ -35,25 +75,66 @@ setInterval(() => {
       delete jobs[id];
     }
   }
-}, 5 * 60 * 1000); 
+  cleanupOrphanTmpDirs();
+}, 5 * 60 * 1000);
+
+function cleanupOrphanTmpDirs() {
+  try {
+    const entries = fs.readdirSync(TMP_DIR, { withFileTypes: true });
+    const now = Date.now();
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const fullPath = path.join(TMP_DIR, entry.name);
+      try {
+        const stat = fs.statSync(fullPath);
+        if (now - stat.mtimeMs > 24 * 60 * 60 * 1000) {
+          fs.rmSync(fullPath, { recursive: true, force: true });
+        }
+      } catch {
+        /* yoksay */
+      }
+    }
+  } catch {
+    /* yoksay */
+  }
+}
+
+function sanitizeSchoolId(schoolId: unknown): string | null {
+  if (typeof schoolId !== 'string') return null;
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(schoolId)) return null;
+  return schoolId;
+}
+
+function safeJobDir(jobId: string): string {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(jobId)) {
+    throw new Error('Geçersiz jobId');
+  }
+  const resolved = path.resolve(TMP_DIR, jobId);
+  if (!resolved.startsWith(TMP_DIR + path.sep)) {
+    throw new Error('Güvensiz dosya yolu');
+  }
+  return resolved;
+}
 
 let fetClAvailable = false;
 try {
-  const { execSync } = require('child_process');
-  execSync('which fet-cl', { encoding: 'utf-8' });
+  const { execFileSync } = require('child_process');
+  execFileSync('which', ['fet-cl'], { encoding: 'utf-8' });
   fetClAvailable = true;
-} catch { }
+} catch {
+  /* fet-cl yok */
+}
 
 app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'fet-service',
-    fetClAvailable: fetClAvailable,
+    fetClAvailable,
     activeJobs: Object.keys(jobs).length,
   });
 });
 
-app.post('/api/fet/preview-xml', (req, res) => {
+app.post('/api/fet/preview-xml', requireAuth, (req, res) => {
   try {
     const xml = generateFetXml(req.body);
     res.type('application/xml').send(xml);
@@ -62,22 +143,33 @@ app.post('/api/fet/preview-xml', (req, res) => {
   }
 });
 
-app.post('/api/fet/generate', async (req, res) => {
-  const { schoolId, teachers, subjects, classes, rooms, activities, constraints } = req.body;
+app.post('/api/fet/generate', requireAuth, async (req, res) => {
+  const { teachers, subjects, classes, rooms, activities, constraints } = req.body;
+  const schoolId = sanitizeSchoolId(req.body.schoolId);
 
   if (!schoolId) {
-    return res.status(400).json({ success: false, message: 'schoolId gerekli' });
+    return res.status(400).json({ success: false, message: 'Geçersiz veya eksik schoolId' });
   }
 
   if (Object.keys(jobs).length >= MAX_JOBS) {
-    return res.status(429).json({ success: false, message: 'Maksimum is sayisina ulasildi. Lutfen daha sonra tekrar deneyin.' });
+    return res
+      .status(429)
+      .json({ success: false, message: 'Maksimum iş sayısına ulaşıldı. Lütfen daha sonra tekrar deneyin.' });
+  }
+
+  if (activeSchoolJobs.has(schoolId)) {
+    return res
+      .status(409)
+      .json({ success: false, message: 'Bu okul için zaten aktif bir oluşturma işi var' });
   }
 
   const jobId = `${schoolId}_${Date.now()}`;
   jobs[jobId] = {
     status: 'pending',
+    schoolId,
     inputData: { schoolId, teachers, subjects, classes, rooms, activities, constraints },
   };
+  activeSchoolJobs.add(schoolId);
 
   res.json({
     success: true,
@@ -90,7 +182,7 @@ app.post('/api/fet/generate', async (req, res) => {
   });
 });
 
-app.get('/api/fet/status/:jobId', (req, res) => {
+app.get('/api/fet/status/:jobId', requireAuth, (req, res) => {
   const job = jobs[req.params.jobId];
   if (!job) {
     return res.status(404).json({ success: false, message: 'İş bulunamadı' });
@@ -108,7 +200,7 @@ app.get('/api/fet/status/:jobId', (req, res) => {
   });
 });
 
-app.get('/api/fet/result/:jobId', (req, res) => {
+app.get('/api/fet/result/:jobId', requireAuth, (req, res) => {
   const job = jobs[req.params.jobId];
   if (!job) {
     return res.status(404).json({ success: false, message: 'İş bulunamadı' });
@@ -128,18 +220,26 @@ app.get('/api/fet/result/:jobId', (req, res) => {
   });
 });
 
-app.post('/api/fet/generate-sync', async (req, res) => {
-  const { schoolId, teachers, subjects, classes, rooms, activities, constraints } = req.body;
+app.post('/api/fet/generate-sync', requireAuth, async (req, res) => {
+  const { teachers, subjects, classes, rooms, activities, constraints } = req.body;
+  const schoolId = sanitizeSchoolId(req.body.schoolId);
 
   if (!schoolId) {
-    return res.status(400).json({ success: false, message: 'schoolId gerekli' });
+    return res.status(400).json({ success: false, message: 'Geçersiz veya eksik schoolId' });
   }
 
+  if (activeSchoolJobs.has(schoolId)) {
+    return res
+      .status(409)
+      .json({ success: false, message: 'Bu okul için zaten aktif bir oluşturma işi var' });
+  }
+  activeSchoolJobs.add(schoolId);
+
+  let jobDir: string | null = null;
   try {
-    
     const xml = generateFetXml({ teachers, subjects, classes, rooms, activities, constraints });
 
-    const jobDir = path.join(TMP_DIR, `${schoolId}_${Date.now()}`);
+    jobDir = safeJobDir(`${schoolId}_${Date.now()}`);
     fs.mkdirSync(jobDir, { recursive: true });
 
     const inputFile = path.join(jobDir, 'input.fet');
@@ -158,10 +258,6 @@ app.post('/api/fet/generate-sync', async (req, res) => {
 
     const timetable = parseFetOutput(outputDir, activities);
 
-    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch (cleanupErr) {
-      console.warn('Gecici dosya temizleme hatasi:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
-    }
-
     res.json({
       success: true,
       message: 'Ders programı başarıyla oluşturuldu',
@@ -172,17 +268,27 @@ app.post('/api/fet/generate-sync', async (req, res) => {
       success: false,
       message: 'Ders programı oluşturma hatası: ' + error.message,
     });
+  } finally {
+    activeSchoolJobs.delete(schoolId);
+    if (jobDir) {
+      try {
+        fs.rmSync(jobDir, { recursive: true, force: true });
+      } catch (cleanupErr) {
+        console.warn('Geçici dosya temizleme hatası:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
+      }
+    }
   }
 });
 
-app.delete('/api/fet/job/:jobId', (req, res) => {
+app.delete('/api/fet/job/:jobId', requireAuth, (req, res) => {
   const jobId = req.params.jobId;
-  if (jobs[jobId]) {
-    delete jobs[jobId];
-    res.json({ success: true, message: 'İş silindi' });
-  } else {
-    res.status(404).json({ success: false, message: 'İş bulunamadı' });
+  const job = jobs[jobId];
+  if (!job) {
+    return res.status(404).json({ success: false, message: 'İş bulunamadı' });
   }
+  activeSchoolJobs.delete(job.schoolId);
+  delete jobs[jobId];
+  res.json({ success: true, message: 'İş silindi' });
 });
 
 async function runGeneration(jobId: string) {
@@ -192,12 +298,13 @@ async function runGeneration(jobId: string) {
   job.status = 'running';
   job.startedAt = new Date().toISOString();
 
+  let jobDir: string | null = null;
   try {
-    const { schoolId, teachers, subjects, classes, rooms, activities, constraints } = job.inputData;
+    const { teachers, subjects, classes, rooms, activities, constraints } = job.inputData;
 
     const xml = generateFetXml({ teachers, subjects, classes, rooms, activities, constraints });
 
-    const jobDir = path.join(TMP_DIR, jobId);
+    jobDir = safeJobDir(jobId);
     fs.mkdirSync(jobDir, { recursive: true });
 
     const inputFile = path.join(jobDir, 'input.fet');
@@ -215,10 +322,6 @@ async function runGeneration(jobId: string) {
 
     const timetable = parseFetOutput(outputDir, activities);
 
-    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch (cleanupErr) {
-      console.warn('Gecici dosya temizleme hatasi:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
-    }
-
     job.status = 'completed';
     job.result = timetable;
     job.completedAt = new Date().toISOString();
@@ -226,11 +329,22 @@ async function runGeneration(jobId: string) {
     job.status = 'failed';
     job.error = error.message;
     job.completedAt = new Date().toISOString();
+  } finally {
+    activeSchoolJobs.delete(job.schoolId);
+    if (jobDir) {
+      try {
+        fs.rmSync(jobDir, { recursive: true, force: true });
+      } catch (cleanupErr) {
+        console.warn('Geçici dosya temizleme hatası:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr);
+      }
+    }
   }
 }
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
-  console.log(`🗓️ FET Servisi çalışıyor: http://localhost:${PORT}`);
-  console.log(`📋 API: http://localhost:${PORT}/api/fet/`);
+  console.log(`FET Servisi çalışıyor: http://localhost:${PORT}`);
+  if (!FET_SHARED_SECRET) {
+    console.warn('FET_SHARED_SECRET tanımlı değil — servis auth-sız çalışıyor (yalnızca dev için).');
+  }
 });

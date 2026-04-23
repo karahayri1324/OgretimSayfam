@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import axios from 'axios';
+import { DayOfWeek, Prisma } from '@prisma/client';
 
 interface FetActivity {
   id: string;
@@ -22,18 +23,26 @@ export class FetIntegrationService {
   private readonly logger = new Logger(FetIntegrationService.name);
   private fetServiceUrl: string;
 
+  private fetSharedSecret: string | undefined;
+
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
     this.fetServiceUrl = this.configService.get('FET_SERVICE_URL') || 'http://localhost:3002';
+    this.fetSharedSecret = this.configService.get<string>('FET_SHARED_SECRET') || undefined;
+  }
+
+  private fetHeaders(): Record<string, string> {
+    return this.fetSharedSecret ? { 'X-Fet-Secret': this.fetSharedSecret } : {};
   }
 
   async checkHealth(): Promise<{ ok: boolean; fetClAvailable: boolean }> {
     try {
       const { data } = await axios.get(`${this.fetServiceUrl}/health`, { timeout: 5000 });
       return { ok: data.status === 'ok', fetClAvailable: data.fetClAvailable };
-    } catch {
+    } catch (err: any) {
+      this.logger.warn(`FET health check başarısız: ${err?.message || err}`);
       return { ok: false, fetClAvailable: false };
     }
   }
@@ -93,7 +102,14 @@ export class FetIntegrationService {
 
     for (const assignment of assignments) {
       const teacherName = `${assignment.teacherProfile.user.firstName} ${assignment.teacherProfile.user.lastName}`;
-      const hoursPerWeek = assignment.hoursPerWeek || 4;
+      const raw = assignment.hoursPerWeek;
+      const hoursPerWeek = Number.isFinite(raw) && raw >= 1 && raw <= 40 ? raw : 4;
+
+      if (!Number.isFinite(raw) || raw < 1) {
+        this.logger.warn(
+          `Öğretmen ataması ${assignment.id} için geçersiz hoursPerWeek=${raw}, varsayılan 4 kullanılıyor`,
+        );
+      }
 
       for (let i = 0; i < hoursPerWeek; i++) {
         activities.push({
@@ -146,7 +162,7 @@ export class FetIntegrationService {
       const { data } = await axios.post(
         `${this.fetServiceUrl}/api/fet/generate`,
         payload,
-        { timeout: 10000 },
+        { timeout: 10000, headers: this.fetHeaders() },
       );
 
       if (data.success) {
@@ -195,7 +211,7 @@ export class FetIntegrationService {
       const { data } = await axios.post(
         `${this.fetServiceUrl}/api/fet/generate-sync`,
         payload,
-        { timeout: 600000 }, 
+        { timeout: 600000, headers: this.fetHeaders() },
       );
 
       return data;
@@ -212,10 +228,11 @@ export class FetIntegrationService {
     try {
       const { data } = await axios.get(
         `${this.fetServiceUrl}/api/fet/status/${jobId}`,
-        { timeout: 5000 },
+        { timeout: 5000, headers: this.fetHeaders() },
       );
       return data;
     } catch (error: any) {
+      this.logger.warn(`FET status kontrol hatası (${jobId}): ${error?.message || error}`);
       return { success: false, error: 'FET servisine bağlanılamadı' };
     }
   }
@@ -224,15 +241,20 @@ export class FetIntegrationService {
     try {
       const { data } = await axios.get(
         `${this.fetServiceUrl}/api/fet/result/${jobId}`,
-        { timeout: 5000 },
+        { timeout: 5000, headers: this.fetHeaders() },
       );
       return data;
     } catch (error: any) {
+      this.logger.warn(`FET result hatası (${jobId}): ${error?.message || error}`);
       return { success: false, error: 'FET servisine bağlanılamadı' };
     }
   }
 
   async importFetResult(schoolId: string, fetEntries: any[]) {
+    if (!Array.isArray(fetEntries) || fetEntries.length === 0) {
+      throw new BadRequestException('İçe aktarılacak kayıt bulunamadı');
+    }
+
     const schoolData = await this.gatherSchoolData(schoolId);
 
     const teacherMap = new Map<string, string>();
@@ -242,43 +264,35 @@ export class FetIntegrationService {
     }
 
     const subjectMap = new Map<string, string>();
-    for (const s of schoolData.subjects) {
-      subjectMap.set(s.name, s.id);
-    }
+    for (const s of schoolData.subjects) subjectMap.set(s.name, s.id);
 
     const classMap = new Map<string, string>();
-    for (const c of schoolData.classes) {
-      classMap.set(c.name, c.id);
-    }
+    for (const c of schoolData.classes) classMap.set(c.name, c.id);
 
     const classroomMap = new Map<string, string>();
-    for (const r of schoolData.classrooms) {
-      classroomMap.set(r.name, r.id);
-    }
+    for (const r of schoolData.classrooms) classroomMap.set(r.name, r.id);
 
     const timeSlotMap = new Map<number, string>();
+    const validSlotNumbers = new Set<number>();
     for (const ts of schoolData.timeSlots) {
       timeSlotMap.set(ts.slotNumber, ts.id);
+      validSlotNumbers.add(ts.slotNumber);
     }
 
-    const dayMap: Record<string, string> = {
-      'Pazartesi': 'MONDAY',
+    const dayMap: Record<string, DayOfWeek> = {
+      Pazartesi: 'MONDAY',
       'Salı': 'TUESDAY',
       'Çarşamba': 'WEDNESDAY',
       'Perşembe': 'THURSDAY',
-      'Cuma': 'FRIDAY',
-      'Monday': 'MONDAY',
-      'Tuesday': 'TUESDAY',
-      'Wednesday': 'WEDNESDAY',
-      'Thursday': 'THURSDAY',
-      'Friday': 'FRIDAY',
+      Cuma: 'FRIDAY',
+      Monday: 'MONDAY',
+      Tuesday: 'TUESDAY',
+      Wednesday: 'WEDNESDAY',
+      Thursday: 'THURSDAY',
+      Friday: 'FRIDAY',
     };
 
-    for (const cls of schoolData.classes) {
-      await this.prisma.timetableEntry.deleteMany({ where: { classId: cls.id } });
-    }
-
-    const imported: any[] = [];
+    const toCreate: Prisma.TimetableEntryCreateManyInput[] = [];
     const errors: string[] = [];
 
     for (const entry of fetEntries) {
@@ -287,37 +301,61 @@ export class FetIntegrationService {
       const teacherId = teacherMap.get(entry.teacher);
       const dayOfWeek = dayMap[entry.day] || dayMap[entry.dayOfWeek];
 
-      const slotNumber = (entry.hourIndex ?? entry.slotNumber ?? 0) + 1;
+      const rawIndex = entry.hourIndex ?? entry.slotNumber;
+      if (!Number.isInteger(rawIndex) || rawIndex < 0) {
+        errors.push(`Geçersiz saat indeksi: ${rawIndex} (${entry.subject || '?'})`);
+        continue;
+      }
+      const slotNumber = rawIndex + 1;
+      if (!validSlotNumbers.has(slotNumber)) {
+        errors.push(`Tanımsız ders saati numarası: ${slotNumber} (${entry.subject || '?'})`);
+        continue;
+      }
       const timeSlotId = timeSlotMap.get(slotNumber);
 
       if (!classId || !subjectId || !timeSlotId || !dayOfWeek) {
         errors.push(
-          `Eşleştirilemedi: ${entry.subject || '?'} - ${entry.students || '?'} - ${entry.teacher || '?'} (Gün: ${entry.day}, Saat: ${slotNumber})`
+          `Eşleştirilemedi: ${entry.subject || '?'} - ${entry.students || '?'} - ${entry.teacher || '?'} (Gün: ${entry.day}, Saat: ${slotNumber})`,
         );
         continue;
       }
 
       const classroomId = entry.room ? classroomMap.get(entry.room) : undefined;
 
-      try {
-        const created = await this.prisma.timetableEntry.create({
-          data: {
-            classId,
-            subjectId,
-            timeSlotId,
-            dayOfWeek: dayOfWeek as any,
-            teacherId: teacherId || undefined,
-            classroomId: classroomId || undefined,
-          },
-        });
-        imported.push(created);
-      } catch (err: any) {
-        errors.push(`Kayıt hatası: ${entry.subject} - ${entry.students} - ${err.message}`);
-      }
+      toCreate.push({
+        classId,
+        subjectId,
+        timeSlotId,
+        dayOfWeek,
+        teacherId: teacherId || null,
+        classroomId: classroomId || null,
+      });
     }
 
+    const totalInput = fetEntries.length;
+    const errorRatio = errors.length / totalInput;
+
+    if (errorRatio > 0.2) {
+      throw new BadRequestException({
+        message: `FET sonucunun %${Math.round(errorRatio * 100)}'i eşleştirilemedi. Veri tutarsız, içe aktarma iptal edildi.`,
+        errorCount: errors.length,
+        errors: errors.slice(0, 20),
+      });
+    }
+
+    const affectedClassIds = Array.from(new Set(toCreate.map((e) => e.classId)));
+    if (affectedClassIds.length === 0) {
+      throw new BadRequestException('İçe aktarılacak geçerli kayıt bulunamadı');
+    }
+
+    const imported = await this.prisma.$transaction(async (tx) => {
+      await tx.timetableEntry.deleteMany({ where: { classId: { in: affectedClassIds } } });
+      const created = await tx.timetableEntry.createMany({ data: toCreate });
+      return created.count;
+    });
+
     return {
-      importedCount: imported.length,
+      importedCount: imported,
       errorCount: errors.length,
       errors: errors.slice(0, 20),
     };

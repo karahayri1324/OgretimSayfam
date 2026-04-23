@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcements.dto';
 
@@ -6,14 +6,48 @@ import { CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcement
 export class AnnouncementsService {
   constructor(private prisma: PrismaService) {}
 
+  private async assertTargetsInSchool(
+    schoolId: string,
+    targetClassIds?: string[],
+    targetStudentIds?: string[],
+  ) {
+    if (targetClassIds && targetClassIds.length > 0) {
+      const count = await this.prisma.class.count({
+        where: { id: { in: targetClassIds }, schoolId },
+      });
+      if (count !== targetClassIds.length) {
+        throw new ForbiddenException('Hedef sınıflardan biri bu okula ait değil');
+      }
+    }
+    if (targetStudentIds && targetStudentIds.length > 0) {
+      const count = await this.prisma.studentProfile.count({
+        where: { id: { in: targetStudentIds }, user: { schoolId } },
+      });
+      if (count !== targetStudentIds.length) {
+        throw new ForbiddenException('Hedef öğrencilerden biri bu okula ait değil');
+      }
+    }
+  }
+
   async create(authorId: string, schoolId: string, dto: CreateAnnouncementDto) {
     const { targetClassIds, targetStudentIds, publishAt, ...data } = dto;
+
+    await this.assertTargetsInSchool(schoolId, targetClassIds, targetStudentIds);
+
+    let publishDate: Date | undefined;
+    if (publishAt) {
+      publishDate = new Date(publishAt);
+      if (isNaN(publishDate.getTime())) {
+        throw new BadRequestException('Geçersiz yayın tarihi');
+      }
+    }
+
     const announcement = await this.prisma.announcement.create({
       data: {
         ...data,
         authorId,
         schoolId,
-        publishAt: publishAt ? new Date(publishAt) : undefined,
+        publishAt: publishDate,
       },
     });
 

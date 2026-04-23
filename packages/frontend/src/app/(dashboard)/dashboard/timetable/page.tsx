@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { dayLabels } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { Calendar, Settings, Wand2, Eye, Users, BookOpen, Clock, AlertCircle, CheckCircle, Loader2, RefreshCw, Trash2, Plus, Download, DoorOpen } from 'lucide-react';
+import Modal from '@/components/Modal';
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
 const DAY_NAMES_TR = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
@@ -538,68 +539,65 @@ function AssignmentsManager() {
         </table>
       </div>
 
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold mb-4">Öğretmen Ataması Ekle</h3>
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Öğretmen Ataması Ekle">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Öğretmen</label>
+            <select className="input w-full" value={formTeacherId} onChange={e => setFormTeacherId(e.target.value)}>
+              <option value="">Seçin...</option>
+              {teachers.map((t: any) => (
+                <option key={t.teacherProfile?.id} value={t.teacherProfile?.id}>
+                  {t.firstName} {t.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Öğretmen</label>
-                <select className="input w-full" value={formTeacherId} onChange={e => setFormTeacherId(e.target.value)}>
-                  <option value="">Seçin...</option>
-                  {teachers.map((t: any) => (
-                    <option key={t.teacherProfile?.id} value={t.teacherProfile?.id}>
-                      {t.firstName} {t.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Ders</label>
+            <select className="input w-full" value={formSubjectId} onChange={e => setFormSubjectId(e.target.value)}>
+              <option value="">Seçin...</option>
+              {subjects.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Ders</label>
-                <select className="input w-full" value={formSubjectId} onChange={e => setFormSubjectId(e.target.value)}>
-                  <option value="">Seçin...</option>
-                  {subjects.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Sınıf</label>
+            <select className="input w-full" value={formClassId} onChange={e => setFormClassId(e.target.value)}>
+              <option value="">Seçin...</option>
+              {classes.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Sınıf</label>
-                <select className="input w-full" value={formClassId} onChange={e => setFormClassId(e.target.value)}>
-                  <option value="">Seçin...</option>
-                  {classes.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Haftalık Ders Saati</label>
-                <input
-                  type="number"
-                  className="input w-full"
-                  min={1}
-                  max={20}
-                  value={formHours}
-                  onChange={e => setFormHours(parseInt(e.target.value) || 1)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowAddModal(false)} className="btn-secondary">
-                İptal
-              </button>
-              <button onClick={handleAddAssignment} className="btn-primary">
-                Ekle
-              </button>
-            </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Haftalık Ders Saati</label>
+            <input
+              type="number"
+              className="input w-full"
+              min={1}
+              max={20}
+              value={formHours}
+              onChange={e => {
+                const n = parseInt(e.target.value, 10);
+                setFormHours(Number.isFinite(n) && n > 0 ? Math.min(n, 20) : 1);
+              }}
+            />
           </div>
         </div>
-      )}
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button onClick={() => setShowAddModal(false)} className="btn-secondary">
+            İptal
+          </button>
+          <button onClick={handleAddAssignment} className="btn-primary">
+            Ekle
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -638,9 +636,11 @@ function FetGenerator() {
   useEffect(() => {
     if (!jobId || jobStatus === 'completed' || jobStatus === 'failed') return;
 
+    let consecutiveErrors = 0;
     const interval = setInterval(async () => {
       try {
         const { data } = await api.get(`/timetable/fet/status/${jobId}`);
+        consecutiveErrors = 0;
         const status = data.data?.status;
         setJobStatus(status);
 
@@ -653,7 +653,15 @@ function FetGenerator() {
           setGenerating(false);
           toast.error('Ders programı oluşturulamadı: ' + (data.data?.error || 'Bilinmeyen hata'));
         }
-      } catch { }
+      } catch (err) {
+        consecutiveErrors += 1;
+        console.warn('FET durum kontrolü başarısız:', err);
+        if (consecutiveErrors >= 5) {
+          setGenerating(false);
+          setJobStatus('failed');
+          toast.error('FET servisine ulaşılamıyor. Durumu daha sonra tekrar kontrol edin.');
+        }
+      }
     }, 2000);
 
     return () => clearInterval(interval);

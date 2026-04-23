@@ -45,7 +45,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await api.post('/auth/logout');
-    } catch {  }
+    } catch (err) {
+      console.warn('Logout API çağrısı başarısız oldu, yerel oturum yine de temizlenecek:', err);
+    }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
@@ -122,11 +124,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             },
           });
         }
-      }).catch(() => {
-        
+      }).catch((err) => {
+        console.warn('Kullanıcı profili yüklenemedi:', err);
       });
-    } catch {
-      
+    } catch (err) {
+      console.warn('Oturum doğrulama hatası, oturum temizleniyor:', err);
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       set({ isLoading: false, isAuthenticated: false });

@@ -1,16 +1,40 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateGradeDto, UpdateGradeDto, CreateGradeCategoryDto, BulkGradeEntryDto } from './dto/grades.dto';
+import { parseDateOnly } from '../../common/utils/date.utils';
 
 @Injectable()
 export class GradesService {
   constructor(private prisma: PrismaService) {}
 
-  async createGrade(teacherProfileId: string, dto: CreateGradeDto) {
+  private async assertStudentInSchool(studentProfileId: string, schoolId: string) {
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentProfileId },
+      select: { user: { select: { schoolId: true } } },
+    });
+    if (!student) throw new NotFoundException('Öğrenci bulunamadı');
+    if (student.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu öğrenciye erişim yetkiniz yok');
+    }
+  }
+
+  private async assertClassInSchool(classId: string, schoolId: string) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: { schoolId: true },
+    });
+    if (!cls) throw new NotFoundException('Sınıf bulunamadı');
+    if (cls.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu sınıfa erişim yetkiniz yok');
+    }
+  }
+
+  async createGrade(teacherProfileId: string, schoolId: string, dto: CreateGradeDto) {
+    await this.assertStudentInSchool(dto.studentProfileId, schoolId);
     return this.prisma.grade.create({
       data: {
         ...dto,
-        date: new Date(dto.date),
+        date: parseDateOnly(dto.date),
         teacherProfileId,
       },
       include: {
@@ -21,9 +45,15 @@ export class GradesService {
     });
   }
 
-  async updateGrade(id: string, dto: UpdateGradeDto, teacherProfileId?: string) {
-    const grade = await this.prisma.grade.findUnique({ where: { id } });
+  async updateGrade(id: string, schoolId: string, dto: UpdateGradeDto, teacherProfileId?: string) {
+    const grade = await this.prisma.grade.findUnique({
+      where: { id },
+      include: { studentProfile: { select: { user: { select: { schoolId: true } } } } },
+    });
     if (!grade) throw new NotFoundException('Not bulunamadi');
+    if (grade.studentProfile.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu nota erişim yetkiniz yok');
+    }
     if (teacherProfileId && grade.teacherProfileId !== teacherProfileId) {
       throw new ForbiddenException('Bu notu duzenleme yetkiniz yok');
     }
@@ -38,9 +68,15 @@ export class GradesService {
     });
   }
 
-  async deleteGrade(id: string, teacherProfileId?: string) {
-    const grade = await this.prisma.grade.findUnique({ where: { id } });
+  async deleteGrade(id: string, schoolId: string, teacherProfileId?: string) {
+    const grade = await this.prisma.grade.findUnique({
+      where: { id },
+      include: { studentProfile: { select: { user: { select: { schoolId: true } } } } },
+    });
     if (!grade) throw new NotFoundException('Not bulunamadi');
+    if (grade.studentProfile.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu nota erişim yetkiniz yok');
+    }
     if (teacherProfileId && grade.teacherProfileId !== teacherProfileId) {
       throw new ForbiddenException('Bu notu silme yetkiniz yok');
     }
@@ -48,15 +84,15 @@ export class GradesService {
     return { message: 'Not silindi' };
   }
 
-  async getParentGrades(parentProfileId: string) {
+  async getParentGrades(parentProfileId: string, schoolId: string) {
     const parentStudents = await this.prisma.parentStudent.findMany({
-      where: { parentId: parentProfileId },
+      where: { parentId: parentProfileId, student: { user: { schoolId } } },
       include: { student: { include: { user: { select: { firstName: true, lastName: true } } } } },
     });
 
     const results = [];
     for (const ps of parentStudents) {
-      const grades = await this.getStudentGrades(ps.studentId);
+      const grades = await this.getStudentGrades(ps.studentId, schoolId);
       results.push({
         student: {
           id: ps.student.id,
@@ -68,7 +104,8 @@ export class GradesService {
     return results;
   }
 
-  async getStudentGrades(studentProfileId: string, termId?: string) {
+  async getStudentGrades(studentProfileId: string, schoolId: string, termId?: string) {
+    await this.assertStudentInSchool(studentProfileId, schoolId);
     const where: any = { studentProfileId };
     if (termId) where.termId = termId;
     return this.prisma.grade.findMany({
@@ -83,7 +120,8 @@ export class GradesService {
     });
   }
 
-  async getClassGrades(classId: string, subjectId: string, termId: string) {
+  async getClassGrades(classId: string, schoolId: string, subjectId: string, termId: string) {
+    await this.assertClassInSchool(classId, schoolId);
     const students = await this.prisma.studentProfile.findMany({
       where: { classId },
       include: {
@@ -99,7 +137,8 @@ export class GradesService {
     return students;
   }
 
-  async getStudentAverage(studentProfileId: string, subjectId: string, termId: string) {
+  async getStudentAverage(studentProfileId: string, schoolId: string, subjectId: string, termId: string) {
+    await this.assertStudentInSchool(studentProfileId, schoolId);
     const grades = await this.prisma.grade.findMany({
       where: { studentProfileId, subjectId, termId },
       include: { category: { select: { weight: true } } },
@@ -117,14 +156,30 @@ export class GradesService {
     return { average: totalWeight > 0 ? (weightedSum / totalWeight).toFixed(2) : null };
   }
 
-  async bulkCreateGrades(dto: BulkGradeEntryDto, teacherProfileId: string) {
-    const validEntries = dto.grades.filter(entry => entry.score >= 0 && entry.score <= 100);
-    if (validEntries.length === 0) {
-      return { created: [], skipped: dto.grades.length };
+  async bulkCreateGrades(dto: BulkGradeEntryDto, teacherProfileId: string, schoolId: string) {
+    if (dto.grades.length === 0) {
+      throw new BadRequestException('Not girilecek öğrenci yok');
     }
 
+    const invalidEntries = dto.grades.filter((entry) => !(entry.score >= 0 && entry.score <= 100));
+    if (invalidEntries.length > 0) {
+      throw new BadRequestException(
+        `${invalidEntries.length} öğrencinin notu 0-100 aralığının dışında. Lütfen düzeltip tekrar deneyin.`,
+      );
+    }
+
+    const studentIds = dto.grades.map((g) => g.studentProfileId);
+    const inSchool = await this.prisma.studentProfile.count({
+      where: { id: { in: studentIds }, user: { schoolId } },
+    });
+    if (inSchool !== new Set(studentIds).size) {
+      throw new ForbiddenException('Bazı öğrenciler bu okula ait değil');
+    }
+
+    const date = parseDateOnly(dto.date);
+
     const results = await this.prisma.$transaction(
-      validEntries.map(entry =>
+      dto.grades.map((entry) =>
         this.prisma.grade.create({
           data: {
             studentProfileId: entry.studentProfileId,
@@ -134,12 +189,12 @@ export class GradesService {
             categoryId: dto.categoryId,
             score: entry.score,
             description: dto.description,
-            date: new Date(dto.date),
+            date,
           },
         }),
       ),
     );
-    return { created: results, skipped: dto.grades.length - validEntries.length };
+    return { created: results, skipped: 0 };
   }
 
   async getCategories(schoolId: string) {

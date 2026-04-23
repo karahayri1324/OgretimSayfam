@@ -42,44 +42,53 @@ export class TimetableController {
 
   @Get('class/:classId')
   @ApiOperation({ summary: 'Sınıf ders programı' })
-  async getByClass(@Param('classId') classId: string) {
-    return { success: true, data: await this.timetableService.getByClass(classId) };
+  async getByClass(@Param('classId') classId: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.timetableService.getByClass(classId, schoolId) };
   }
 
   @Get('teacher/:teacherId')
   @ApiOperation({ summary: 'Öğretmen ders programı' })
-  async getByTeacher(@Param('teacherId') teacherId: string) {
-    return { success: true, data: await this.timetableService.getByTeacher(teacherId) };
+  async getByTeacher(@Param('teacherId') teacherId: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.timetableService.getByTeacher(teacherId, schoolId) };
   }
 
   @Get('classroom/:classroomId')
   @ApiOperation({ summary: 'Derslik ders programı' })
-  async getByClassroom(@Param('classroomId') classroomId: string) {
-    return { success: true, data: await this.timetableService.getByClassroom(classroomId) };
+  async getByClassroom(
+    @Param('classroomId') classroomId: string,
+    @CurrentUser('schoolId') schoolId: string,
+  ) {
+    return { success: true, data: await this.timetableService.getByClassroom(classroomId, schoolId) };
   }
 
   @Post('entries')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ders programı kaydı ekle' })
-  async createEntry(@Body() dto: CreateTimetableEntryDto) {
-    return { success: true, data: await this.timetableService.createEntry(dto) };
+  async createEntry(
+    @CurrentUser('schoolId') schoolId: string,
+    @Body() dto: CreateTimetableEntryDto,
+  ) {
+    return { success: true, data: await this.timetableService.createEntry(schoolId, dto) };
   }
 
   @Post('entries/bulk')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Toplu ders programı kaydı ekle' })
-  async bulkCreate(@Body() dto: BulkCreateTimetableDto) {
-    return { success: true, data: await this.timetableService.bulkCreate(dto) };
+  async bulkCreate(
+    @CurrentUser('schoolId') schoolId: string,
+    @Body() dto: BulkCreateTimetableDto,
+  ) {
+    return { success: true, data: await this.timetableService.bulkCreate(schoolId, dto) };
   }
 
   @Delete('entries/:id')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Ders programı kaydı sil' })
-  async deleteEntry(@Param('id') id: string) {
-    return { success: true, data: await this.timetableService.deleteEntry(id) };
+  async deleteEntry(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.timetableService.deleteEntry(id, schoolId) };
   }
 
   @Get('assignments')
@@ -94,16 +103,19 @@ export class TimetableController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Öğretmen ataması ekle' })
-  async createAssignment(@Body() dto: { teacherProfileId: string; classId: string; subjectId: string; hoursPerWeek: number }) {
-    return { success: true, data: await this.timetableService.createTeacherAssignment(dto) };
+  async createAssignment(
+    @CurrentUser('schoolId') schoolId: string,
+    @Body() dto: { teacherProfileId: string; classId: string; subjectId: string; hoursPerWeek: number },
+  ) {
+    return { success: true, data: await this.timetableService.createTeacherAssignment(schoolId, dto) };
   }
 
   @Delete('assignments/:id')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Öğretmen ataması sil' })
-  async deleteAssignment(@Param('id') id: string) {
-    return { success: true, data: await this.timetableService.deleteTeacherAssignment(id) };
+  async deleteAssignment(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.timetableService.deleteTeacherAssignment(id, schoolId) };
   }
 
   @Get('fet/health')
@@ -188,7 +200,7 @@ export class TimetableController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Sınıf ders programını temizle' })
-  async clearClass(@Param('classId') classId: string) {
-    return { success: true, data: await this.timetableService.clearClassTimetable(classId) };
+  async clearClass(@Param('classId') classId: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.timetableService.clearClassTimetable(classId, schoolId) };
   }
 }

@@ -239,7 +239,7 @@ export default function Header() {
                   href="/dashboard/notifications"
                   className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center justify-center"
                 >
-                  Tumunu Gor
+                  Tümünü Gör
                 </Link>
               </div>
             </div>

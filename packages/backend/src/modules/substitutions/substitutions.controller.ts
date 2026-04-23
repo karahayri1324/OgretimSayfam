@@ -18,24 +18,28 @@ export class SubstitutionsController {
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Vekil atama oluştur' })
-  async create(@Body() dto: CreateSubstitutionDto) {
-    return { success: true, data: await this.substitutionsService.create(dto) };
+  async create(@CurrentUser('schoolId') schoolId: string, @Body() dto: CreateSubstitutionDto) {
+    return { success: true, data: await this.substitutionsService.create(schoolId, dto) };
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Vekil atama güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateSubstitutionDto) {
-    return { success: true, data: await this.substitutionsService.update(id, dto) };
+  async update(
+    @Param('id') id: string,
+    @CurrentUser('schoolId') schoolId: string,
+    @Body() dto: UpdateSubstitutionDto,
+  ) {
+    return { success: true, data: await this.substitutionsService.update(id, schoolId, dto) };
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Vekil atama sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.substitutionsService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.substitutionsService.delete(id, schoolId) };
   }
 
   @Get()

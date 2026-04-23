@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { getDayOfWeekInTimezone, getStartOfDayInTimezone, isWeekendInTimezone } from '../../common/utils/date.utils';
 
 @Injectable()
 export class DashboardService {
@@ -15,8 +16,7 @@ export class DashboardService {
       this.prisma.subject.count({ where: { schoolId, isActive: true } }),
     ]);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getStartOfDayInTimezone();
 
     const [todayAbsentTeachers, todaySubstitutions, todayAttendancePresent, todayAttendanceAbsent, recentAnnouncements, upcomingEvents] = await Promise.all([
       this.prisma.teacherAttendance.count({
@@ -70,12 +70,9 @@ export class DashboardService {
   }
 
   async getTeacherDashboard(teacherProfileId: string | undefined, schoolId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const dayIndex = today.getDay();
-    const dayOfWeek = dayNames[dayIndex];
-    const isWeekend = dayIndex === 0 || dayIndex === 6;
+    const today = getStartOfDayInTimezone();
+    const dayOfWeek = getDayOfWeekInTimezone();
+    const isWeekend = isWeekendInTimezone();
 
     if (!teacherProfileId) {
       return {
@@ -90,7 +87,7 @@ export class DashboardService {
 
     const [todayClasses, timeSlots, assignments, announcements, pendingDiaryCount] = await Promise.all([
       isWeekend ? Promise.resolve([]) : this.prisma.timetableEntry.findMany({
-        where: { teacherId: teacherProfileId, dayOfWeek: dayOfWeek as any },
+        where: { teacherId: teacherProfileId, dayOfWeek },
         include: {
           class: { select: { name: true } },
           subject: { select: { name: true, color: true } },
@@ -141,12 +138,9 @@ export class DashboardService {
   }
 
   async getStudentDashboard(studentProfileId: string | undefined, classId: string | undefined, schoolId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const dayIndex = today.getDay();
-    const dayOfWeek = dayNames[dayIndex];
-    const isWeekend = dayIndex === 0 || dayIndex === 6;
+    const today = getStartOfDayInTimezone();
+    const dayOfWeek = getDayOfWeekInTimezone();
+    const isWeekend = isWeekendInTimezone();
 
     if (!studentProfileId || !classId) {
       return {
@@ -161,7 +155,7 @@ export class DashboardService {
 
     const [todayClasses, timeSlots, pendingAssignments, recentGrades, announcements, absenceCount] = await Promise.all([
       isWeekend ? Promise.resolve([]) : this.prisma.timetableEntry.findMany({
-        where: { classId, dayOfWeek: dayOfWeek as any },
+        where: { classId, dayOfWeek },
         include: {
           subject: { select: { name: true, color: true } },
           timeSlot: true,
@@ -228,12 +222,9 @@ export class DashboardService {
   }
 
   async getParentDashboard(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const dayIndex = today.getDay();
-    const dayOfWeek = dayNames[dayIndex];
-    const isWeekend = dayIndex === 0 || dayIndex === 6;
+    const today = getStartOfDayInTimezone();
+    const dayOfWeek = getDayOfWeekInTimezone();
+    const isWeekend = isWeekendInTimezone();
 
     const parentProfile = await this.prisma.parentProfile.findUnique({
       where: { userId },
@@ -277,7 +268,7 @@ export class DashboardService {
           isWeekend || !classId
             ? Promise.resolve([])
             : this.prisma.timetableEntry.findMany({
-                where: { classId, dayOfWeek: dayOfWeek as any },
+                where: { classId, dayOfWeek },
                 include: {
                   subject: { select: { name: true, color: true } },
                   timeSlot: true,

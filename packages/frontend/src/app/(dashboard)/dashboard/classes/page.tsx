@@ -149,7 +149,14 @@ export default function ClassesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-gray-600">Seviye</label>
-                  <select className="input" value={form.grade} onChange={(e) => setForm({ ...form, grade: parseInt(e.target.value) })}>
+                  <select
+                    className="input"
+                    value={form.grade}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      setForm({ ...form, grade: Number.isFinite(n) ? n : 1 });
+                    }}
+                  >
                     {[1,2,3,4,5,6,7,8,9,10,11,12].map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
@@ -158,7 +165,18 @@ export default function ClassesPage() {
                   <input className="input" placeholder="A" value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })} required />
                 </div>
               </div>
-              <input className="input" type="number" placeholder="Kapasite" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) })} />
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={100}
+                placeholder="Kapasite"
+                value={form.capacity}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  setForm({ ...form, capacity: Number.isFinite(n) && n > 0 ? n : 1 });
+                }}
+              />
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={closeModal} className="btn-secondary flex-1">İptal</button>
                 <button type="submit" className="btn-primary flex-1">

@@ -9,57 +9,78 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Sınıf Defteri')
 @Controller('class-diary')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ClassDiaryController {
   constructor(private classDiaryService: ClassDiaryService) {}
 
   @Post()
-  @UseGuards(RolesGuard)
   @Roles('TEACHER')
   @ApiOperation({ summary: 'Sınıf defteri kaydı oluştur' })
   async create(@CurrentUser() user: any, @Body() dto: CreateClassDiaryDto) {
     if (!user.teacherProfile) throw new BadRequestException('Ogretmen profili bulunamadi');
-    return { success: true, data: await this.classDiaryService.create(user.teacherProfile.id, dto) };
+    return {
+      success: true,
+      data: await this.classDiaryService.create(user.teacherProfile.id, user.schoolId, dto),
+    };
   }
 
   @Put(':id')
-  @UseGuards(RolesGuard)
   @Roles('TEACHER', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Sınıf defteri kaydını güncelle' })
-  async update(@Param('id') id: string, @Body() dto: UpdateClassDiaryDto) {
-    return { success: true, data: await this.classDiaryService.update(id, dto) };
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: UpdateClassDiaryDto,
+  ) {
+    const teacherProfileId = user.role === 'TEACHER' ? user.teacherProfile?.id : undefined;
+    return {
+      success: true,
+      data: await this.classDiaryService.update(id, user.schoolId, dto, teacherProfileId),
+    };
   }
 
   @Get('class/:classId')
+  @Roles('SCHOOL_ADMIN', 'TEACHER')
   @ApiOperation({ summary: 'Sınıf defteri (tarih bazlı)' })
-  async getByDate(@Param('classId') classId: string, @Query('date') date: string) {
-    return { success: true, data: await this.classDiaryService.getByClassAndDate(classId, date) };
+  async getByDate(
+    @Param('classId') classId: string,
+    @CurrentUser('schoolId') schoolId: string,
+    @Query('date') date: string,
+  ) {
+    return { success: true, data: await this.classDiaryService.getByClassAndDate(classId, date, schoolId) };
   }
 
   @Get('class/:classId/range')
+  @Roles('SCHOOL_ADMIN', 'TEACHER')
   @ApiOperation({ summary: 'Sınıf defteri (tarih aralığı)' })
   async getByRange(
     @Param('classId') classId: string,
+    @CurrentUser('schoolId') schoolId: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ) {
-    return { success: true, data: await this.classDiaryService.getByClassDateRange(classId, startDate, endDate) };
+    return {
+      success: true,
+      data: await this.classDiaryService.getByClassDateRange(classId, schoolId, startDate, endDate),
+    };
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
   @Roles('TEACHER', 'SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Sınıf defteri kaydını sil' })
-  async delete(@Param('id') id: string) {
-    return { success: true, data: await this.classDiaryService.delete(id) };
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    const teacherProfileId = user.role === 'TEACHER' ? user.teacherProfile?.id : undefined;
+    return {
+      success: true,
+      data: await this.classDiaryService.delete(id, user.schoolId, teacherProfileId),
+    };
   }
 
   @Put(':id/approve')
-  @UseGuards(RolesGuard)
   @Roles('SCHOOL_ADMIN')
   @ApiOperation({ summary: 'Sınıf defteri kaydını onayla' })
-  async approve(@Param('id') id: string) {
-    return { success: true, data: await this.classDiaryService.approve(id) };
+  async approve(@Param('id') id: string, @CurrentUser('schoolId') schoolId: string) {
+    return { success: true, data: await this.classDiaryService.approve(id, schoolId) };
   }
 }

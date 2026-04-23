@@ -229,7 +229,16 @@ export default function UsersPage() {
                 <input className="input" placeholder="Soyad" value={createForm.lastName} onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })} required />
               </div>
               <input className="input" type="email" placeholder="E-posta" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} required />
-              <input className="input" placeholder="Şifre" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} required />
+              <input
+                className="input"
+                type="password"
+                placeholder="Şifre (en az 6 karakter)"
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                required
+                minLength={6}
+                autoComplete="new-password"
+              />
               <select className="input" value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}>
                 <option value="TEACHER">Öğretmen</option>
                 <option value="STUDENT">Öğrenci</option>

@@ -1,15 +1,53 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSubstitutionDto, UpdateSubstitutionDto } from './dto/substitutions.dto';
-import { DayOfWeek } from '@prisma/client';
+import { getDayOfWeekInTimezone, getStartOfDayInTimezone, parseDateOnly } from '../../common/utils/date.utils';
 
 @Injectable()
 export class SubstitutionsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateSubstitutionDto) {
+  private async assertEntryBelongsToSchool(timetableEntryId: string, schoolId: string) {
+    const entry = await this.prisma.timetableEntry.findUnique({
+      where: { id: timetableEntryId },
+      select: { class: { select: { schoolId: true } } },
+    });
+    if (!entry) throw new NotFoundException('Ders programı kaydı bulunamadı');
+    if (entry.class.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu ders kaydına erişim yetkiniz yok');
+    }
+  }
+
+  private async assertTeacherBelongsToSchool(teacherProfileId: string, schoolId: string) {
+    const teacher = await this.prisma.teacherProfile.findUnique({
+      where: { id: teacherProfileId },
+      select: { user: { select: { schoolId: true } } },
+    });
+    if (!teacher) throw new NotFoundException('Öğretmen bulunamadı');
+    if (teacher.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu öğretmene erişim yetkiniz yok');
+    }
+  }
+
+  async create(schoolId: string, dto: CreateSubstitutionDto) {
+    if (dto.substituteTeacherId && dto.substituteTeacherId === dto.originalTeacherId) {
+      throw new BadRequestException('Bir öğretmen kendisine vekil atanamaz');
+    }
+
+    await this.assertEntryBelongsToSchool(dto.timetableEntryId, schoolId);
+    await this.assertTeacherBelongsToSchool(dto.originalTeacherId, schoolId);
+    if (dto.substituteTeacherId) {
+      await this.assertTeacherBelongsToSchool(dto.substituteTeacherId, schoolId);
+    }
+
+    const date = parseDateOnly(dto.date);
+    const today = getStartOfDayInTimezone();
+    if (date.getTime() < today.getTime()) {
+      throw new BadRequestException('Geçmiş tarihe vekil atama yapılamaz');
+    }
+
     return this.prisma.substitution.create({
-      data: { ...dto, date: new Date(dto.date) },
+      data: { ...dto, date },
       include: {
         timetableEntry: {
           include: {
@@ -24,9 +62,23 @@ export class SubstitutionsService {
     });
   }
 
-  async update(id: string, dto: UpdateSubstitutionDto) {
-    const existing = await this.prisma.substitution.findUnique({ where: { id } });
+  async update(id: string, schoolId: string, dto: UpdateSubstitutionDto) {
+    const existing = await this.prisma.substitution.findUnique({
+      where: { id },
+      include: { originalTeacher: { select: { userId: true, user: { select: { schoolId: true } } } } },
+    });
     if (!existing) throw new NotFoundException('Vekil atama bulunamadı');
+    if (existing.originalTeacher.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu vekil atamaya erişim yetkiniz yok');
+    }
+
+    if (dto.substituteTeacherId) {
+      if (dto.substituteTeacherId === existing.originalTeacherId) {
+        throw new BadRequestException('Bir öğretmen kendisine vekil atanamaz');
+      }
+      await this.assertTeacherBelongsToSchool(dto.substituteTeacherId, schoolId);
+    }
+
     return this.prisma.substitution.update({
       where: { id },
       data: dto,
@@ -40,9 +92,15 @@ export class SubstitutionsService {
     });
   }
 
-  async delete(id: string) {
-    const existing = await this.prisma.substitution.findUnique({ where: { id } });
+  async delete(id: string, schoolId: string) {
+    const existing = await this.prisma.substitution.findUnique({
+      where: { id },
+      include: { originalTeacher: { select: { user: { select: { schoolId: true } } } } },
+    });
     if (!existing) throw new NotFoundException('Vekil atama bulunamadı');
+    if (existing.originalTeacher.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu vekil atamaya erişim yetkiniz yok');
+    }
     await this.prisma.substitution.delete({ where: { id } });
     return { message: 'Vekil atama silindi' };
   }
@@ -50,7 +108,7 @@ export class SubstitutionsService {
   async getByDate(schoolId: string, date: string) {
     return this.prisma.substitution.findMany({
       where: {
-        date: new Date(date),
+        date: parseDateOnly(date),
         originalTeacher: { user: { schoolId } },
       },
       include: {
@@ -65,12 +123,13 @@ export class SubstitutionsService {
   }
 
   async getAvailableTeachers(schoolId: string, date: string, timeSlotId: string) {
-    const dateObj = new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      throw new NotFoundException('Geçersiz tarih formatı');
+    let dateObj: Date;
+    try {
+      dateObj = parseDateOnly(date);
+    } catch {
+      throw new BadRequestException('Geçersiz tarih formatı');
     }
-    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const dayOfWeek = dayNames[dateObj.getDay()] as DayOfWeek;
+    const dayOfWeek = getDayOfWeekInTimezone(dateObj);
 
     const busyTeacherIds = await this.prisma.timetableEntry.findMany({
       where: { dayOfWeek, timeSlotId, teacherId: { not: null } },

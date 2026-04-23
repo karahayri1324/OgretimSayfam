@@ -54,7 +54,17 @@ export class ClassesService {
     return { message: 'Sınıf silindi' };
   }
 
-  async addStudent(classId: string, studentProfileId: string) {
+  async addStudent(classId: string, studentProfileId: string, schoolId: string) {
+    await this.findById(classId, schoolId);
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentProfileId },
+      select: { user: { select: { schoolId: true } } },
+    });
+    if (!student) throw new NotFoundException('Öğrenci bulunamadı');
+    if (student.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu öğrenciye erişim yetkiniz yok');
+    }
+
     await this.prisma.studentProfile.update({
       where: { id: studentProfileId },
       data: { classId },
@@ -62,7 +72,16 @@ export class ClassesService {
     return { message: 'Öğrenci sınıfa eklendi' };
   }
 
-  async removeStudent(studentProfileId: string) {
+  async removeStudent(studentProfileId: string, schoolId: string) {
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentProfileId },
+      select: { user: { select: { schoolId: true } } },
+    });
+    if (!student) throw new NotFoundException('Öğrenci bulunamadı');
+    if (student.user.schoolId !== schoolId) {
+      throw new ForbiddenException('Bu öğrenciye erişim yetkiniz yok');
+    }
+
     await this.prisma.studentProfile.update({
       where: { id: studentProfileId },
       data: { classId: null },

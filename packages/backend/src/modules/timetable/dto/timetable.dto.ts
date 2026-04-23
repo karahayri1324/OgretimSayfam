@@ -5,8 +5,8 @@ import { DayOfWeek } from '@prisma/client';
 
 export class CreateTimeSlotDto {
   @ApiProperty() @IsInt() slotNumber: number;
-  @ApiProperty({ example: '08:30' }) @IsString() @Matches(/^\d{2}:\d{2}$/, { message: 'Başlangıç saati HH:MM formatında olmalıdır' }) startTime: string;
-  @ApiProperty({ example: '09:10' }) @IsString() @Matches(/^\d{2}:\d{2}$/, { message: 'Bitiş saati HH:MM formatında olmalıdır' }) endTime: string;
+  @ApiProperty({ example: '08:30' }) @IsString() @Matches(/^([0-1]\d|2[0-3]):[0-5]\d$/, { message: 'Başlangıç saati HH:MM formatında olmalıdır' }) startTime: string;
+  @ApiProperty({ example: '09:10' }) @IsString() @Matches(/^([0-1]\d|2[0-3]):[0-5]\d$/, { message: 'Bitiş saati HH:MM formatında olmalıdır' }) endTime: string;
 }
 
 export class CreateTimetableEntryDto {
